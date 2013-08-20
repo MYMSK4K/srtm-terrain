@@ -76,9 +76,9 @@ class GeoMipMap():
 				p22 = self.data.proj.Proj(x2, y2, 0.)
 
 				c11 = self.data.tile[i, j] 
-				c12 = self.data.tile[i, j]
-				c21 = self.data.tile[i, j]
-				c22 = self.data.tile[i, j]
+				c12 = self.data.tile[i, j+1]
+				c21 = self.data.tile[i+1, j]
+				c22 = self.data.tile[i+1, j+1]
 
 
 				if 1:
