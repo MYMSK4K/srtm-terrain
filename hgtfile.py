@@ -1,6 +1,6 @@
 import struct, zipfile
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 def OpenHgt(fina):
 
@@ -19,10 +19,10 @@ def OpenHgt(fina):
 		#print off / l, len(fi) / l, v
 		data[count / sideLen, count % sideLen] = v
 
-	print data.min(), data.max()
-
-	imgplot = plt.imshow(data)
-	plt.show()
+	#print data.min(), data.max()
+	#imgplot = plt.imshow(data)
+	#plt.show()
+	return data
 
 if __name__=="__main__":
 

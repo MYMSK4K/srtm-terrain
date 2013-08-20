@@ -6,6 +6,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 
 import pygame
+import hgtfile
 from pygame.locals import *
 
 def resize(width, height):
@@ -23,6 +24,34 @@ def init():
 	glEnable(GL_DEPTH_TEST)
 	glClearColor(1.0, 1.0, 1.0, 0.0)
 
+class SrtmTile():
+	def __init__(self):
+		self.tile = hgtfile.OpenHgt("N51E001.hgt.zip")
+		self.max = self.tile.max()
+		self.min = self.tile.min()
+		self.tileNorm = (self.tile.astype(float) - self.min) / (self.max - self.min)
+		print self.tile.shape
+
+	def Draw(self):
+		for i in range(self.tile.shape[0]-1):
+			print i
+			for j in range(self.tile.shape[1]-1):
+
+				x1 = float(i) / self.tile.shape[0]
+				y1 = float(j) / self.tile.shape[1]
+				x2 = float(i+1) / self.tile.shape[0]
+				y2 = float(j+1) / self.tile.shape[1]
+
+				glBegin(GL_QUADS);
+				glColor4f(self.tileNorm[i,j], self.tileNorm[i,j], self.tileNorm[i,j], 1.)
+				glVertex(x1, y1, 0.)
+				glColor4f(self.tileNorm[i,j+1], self.tileNorm[i,j+1], self.tileNorm[i,j+1], 1.)
+				glVertex(x1, y2, 0.)
+				glColor4f(self.tileNorm[i+1,j+1], self.tileNorm[i+1,j+1], self.tileNorm[i+1,j+1], 1.)
+				glVertex(x2, y2, 0.)
+				glColor4f(self.tileNorm[i+1,j], self.tileNorm[i+1,j], self.tileNorm[i+1,j], 1.)
+				glVertex(x2, y1, 0.)
+				glEnd();
 
 def run():
 	
@@ -38,6 +67,8 @@ def run():
 	glMaterial(GL_FRONT, GL_DIFFUSE, (1.0, 1.0, 1.0, 1.0))
 
 	movement_speed = 5.0	
+
+	srtmTile = SrtmTile()
 
 	while True:
 		
@@ -57,17 +88,19 @@ def run():
 		
 		glMatrixMode(GL_MODELVIEW)
 		glLoadIdentity()
-		gluLookAt(0, 0, 10, # look from camera XYZ
+		gluLookAt(0, 0, 2, # look from camera XYZ
 			0, 0, 0, # look at the origin
 			0, 1, 0); # up
 
-		glBegin(GL_QUADS);
-		glColor4f(1.0, 0., 0., 1.)
-		glVertex(-1.0, 1.0, 0.0)
-		glVertex(1.0, 1.0, 0.0)
-		glVertex(1.0, -1.0, 0.0)
-		glVertex(-1.0, -1.0, 0.0)
-		glEnd();
+		#glBegin(GL_QUADS);
+		#glColor4f(1.0, 0., 0., 1.)
+		#glVertex(-1.0, 1.0, 0.0)
+		#glVertex(1.0, 1.0, 0.0)
+		#glVertex(1.0, -1.0, 0.0)
+		#glVertex(-1.0, -1.0, 0.0)
+		#glEnd();
+
+		srtmTile.Draw()
 
 		# Show the screen
 		pygame.display.flip()
