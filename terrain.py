@@ -24,6 +24,56 @@ def init():
 	glEnable(GL_DEPTH_TEST)
 	glClearColor(1.0, 1.0, 1.0, 0.0)
 
+class QuadTile():
+	def __init__(self, tile, xinds, yinds, vmin, vmax, depth = 0):
+
+		self.tile = tile
+		self.max = vmax
+		self.min = vmin
+		self.xinds = xinds
+		self.yinds = yinds
+		self.childTiles = []
+		self.depth = depth
+
+		if xinds[1]-xinds[0] > 10 or yinds[1]-yinds[0] > 10:
+			self.Split()
+
+	def Draw(self):
+
+		x1 = float(self.xinds[0]) / self.tile.shape[0]
+		x2 = float(self.xinds[1]) / self.tile.shape[0]
+		y1 = float(self.yinds[0]) / self.tile.shape[1]
+		y2 = float(self.yinds[1]) / self.tile.shape[1]
+		c11 = self.tile[self.xinds[0], self.yinds[0]] 
+		c12 = self.tile[self.xinds[0], self.yinds[1]]
+		c21 = self.tile[self.xinds[1], self.yinds[0]]
+		c22 = self.tile[self.xinds[1], self.yinds[1]]
+
+		if len(self.childTiles) == 0:
+			glBegin(GL_QUADS);
+			glColor4f(c11, c11, c11, 1.)
+			glVertex(x1, y1, 0.)
+			glColor4f(c21, c21, c21, 1.)
+			glVertex(x2, y1, 0.)
+			glColor4f(c22, c22, c22, 1.)
+			glVertex(x2, y2, 0.)
+			glColor4f(c12, c12, c12, 1.)
+			glVertex(x1, y2, 0.)
+			glEnd();
+		else:
+			for t in self.childTiles:
+				t.Draw()
+
+	def Split(self):
+		xsp = int(round((self.xinds[0] + self.xinds[1]) * 0.5))
+		ysp = int(round((self.yinds[0] + self.yinds[1]) * 0.5))
+
+		self.childTiles = []
+		self.childTiles.append(QuadTile(self.tile, (self.xinds[0], xsp), (self.yinds[0], ysp), self.min, self.max, self.depth + 1))
+		self.childTiles.append(QuadTile(self.tile, (xsp, self.xinds[1]), (self.yinds[0], ysp), self.min, self.max, self.depth + 1))
+		self.childTiles.append(QuadTile(self.tile, (self.xinds[0], xsp), (ysp, self.yinds[1]), self.min, self.max, self.depth + 1))
+		self.childTiles.append(QuadTile(self.tile, (xsp, self.xinds[1]), (ysp, self.yinds[1]), self.min, self.max, self.depth + 1))
+
 class SrtmTile():
 	def __init__(self):
 		self.tile = hgtfile.OpenHgt("N51E001.hgt.zip")
@@ -32,26 +82,20 @@ class SrtmTile():
 		self.tileNorm = (self.tile.astype(float) - self.min) / (self.max - self.min)
 		print self.tile.shape
 
+		xsp = self.tile.shape[0] / 2
+		ysp = self.tile.shape[1] / 2
+		self.childTiles = []
+		self.childTiles.append(QuadTile(self.tileNorm, (0, xsp), (0, ysp), self.min, self.max))
+		self.childTiles.append(QuadTile(self.tileNorm, (xsp, self.tile.shape[0]-1), (0, ysp), self.min, self.max))
+		self.childTiles.append(QuadTile(self.tileNorm, (0, xsp), (ysp, self.tile.shape[1]-1), self.min, self.max))
+		self.childTiles.append(QuadTile(self.tileNorm, (xsp, self.tile.shape[0]-1), (ysp, self.tile.shape[1]-1), self.min, self.max))
+
 	def Draw(self):
-		for i in range(self.tile.shape[0]-1):
-			print i
-			for j in range(self.tile.shape[1]-1):
 
-				x1 = float(i) / self.tile.shape[0]
-				y1 = float(j) / self.tile.shape[1]
-				x2 = float(i+1) / self.tile.shape[0]
-				y2 = float(j+1) / self.tile.shape[1]
-
-				glBegin(GL_QUADS);
-				glColor4f(self.tileNorm[i,j], self.tileNorm[i,j], self.tileNorm[i,j], 1.)
-				glVertex(x1, y1, 0.)
-				glColor4f(self.tileNorm[i,j+1], self.tileNorm[i,j+1], self.tileNorm[i,j+1], 1.)
-				glVertex(x1, y2, 0.)
-				glColor4f(self.tileNorm[i+1,j+1], self.tileNorm[i+1,j+1], self.tileNorm[i+1,j+1], 1.)
-				glVertex(x2, y2, 0.)
-				glColor4f(self.tileNorm[i+1,j], self.tileNorm[i+1,j], self.tileNorm[i+1,j], 1.)
-				glVertex(x2, y1, 0.)
-				glEnd();
+		self.childTiles[0].Draw()
+		self.childTiles[1].Draw()
+		self.childTiles[2].Draw()
+		self.childTiles[3].Draw()
 
 def run():
 	
@@ -66,18 +110,37 @@ def run():
 	glMaterial(GL_FRONT, GL_AMBIENT, (0.1, 0.1, 0.1, 1.0))	
 	glMaterial(GL_FRONT, GL_DIFFUSE, (1.0, 1.0, 1.0, 1.0))
 
-	movement_speed = 5.0	
+	movement_speed = 5.0
+	camPos = [0., 0., 2.]
 
 	srtmTile = SrtmTile()
 
 	while True:
 		
+		time_passed = clock.tick()
+		time_passed_seconds = time_passed / 1000.
+
 		for event in pygame.event.get():
 			if event.type == QUIT:
 				return
 			if event.type == KEYUP and event.key == K_ESCAPE:
-				return				
-			
+				return
+
+		pressed = pygame.key.get_pressed()
+
+		if pressed[K_LEFT]:
+			camPos[0] -= 1. * time_passed_seconds
+		if pressed[K_RIGHT]:
+			camPos[0] += 1. * time_passed_seconds
+		if pressed[K_UP]:
+			camPos[1] += 1. * time_passed_seconds
+		if pressed[K_DOWN]:
+			camPos[1] -= 1. * time_passed_seconds
+		if pressed[K_a]:
+			camPos[2] -= 1. * time_passed_seconds
+		if pressed[K_z]:
+			camPos[2] += 1. * time_passed_seconds
+		
 		# Clear the screen, and z-buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 						
@@ -88,17 +151,9 @@ def run():
 		
 		glMatrixMode(GL_MODELVIEW)
 		glLoadIdentity()
-		gluLookAt(0, 0, 2, # look from camera XYZ
-			0, 0, 0, # look at the origin
+		gluLookAt(camPos[0], camPos[1], camPos[2], # look from camera XYZ
+			camPos[0], camPos[1], 0., # look at the origin
 			0, 1, 0); # up
-
-		#glBegin(GL_QUADS);
-		#glColor4f(1.0, 0., 0., 1.)
-		#glVertex(-1.0, 1.0, 0.0)
-		#glVertex(1.0, 1.0, 0.0)
-		#glVertex(1.0, -1.0, 0.0)
-		#glVertex(-1.0, -1.0, 0.0)
-		#glEnd();
 
 		srtmTile.Draw()
 
