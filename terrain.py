@@ -50,16 +50,25 @@ class QuadTile():
 		c22 = self.tile[self.xinds[1], self.yinds[1]]
 
 		if len(self.childTiles) == 0:
-			glBegin(GL_QUADS);
-			glColor4f(c11, c11, c11, 1.)
-			glVertex(x1, y1, 0.)
-			glColor4f(c21, c21, c21, 1.)
-			glVertex(x2, y1, 0.)
-			glColor4f(c22, c22, c22, 1.)
-			glVertex(x2, y2, 0.)
-			glColor4f(c12, c12, c12, 1.)
-			glVertex(x1, y2, 0.)
-			glEnd();
+			if 0:
+				glBegin(GL_QUADS)
+				glColor4f(c11, c11, c11, 1.)
+				glVertex(x1, y1, 0.)
+				glColor4f(c21, c21, c21, 1.)
+				glVertex(x2, y1, 0.)
+				glColor4f(c22, c22, c22, 1.)
+				glVertex(x2, y2, 0.)
+				glColor4f(c12, c12, c12, 1.)
+				glVertex(x1, y2, 0.)
+				glEnd()
+			else:
+				glColor4f(0., 0., 0., 1.)
+				glBegin(GL_LINE_LOOP)
+				glVertex(x1, y1, 0.)
+				glVertex(x2, y1, 0.)
+				glVertex(x2, y2, 0.)
+				glVertex(x1, y2, 0.)
+				glEnd()
 		else:
 			for t in self.childTiles:
 				t.Draw()
