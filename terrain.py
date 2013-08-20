@@ -196,8 +196,8 @@ def run():
 
 	proj = ProjFunc()
 	
-	camLatLon = [51.5, 1.5]
-	camAlt = 100000.
+	#camLatLon, camAlt = [51.5, 1.5], 100000.
+	camLatLon, camAlt = [51.98089999999999, 1.0196999999999974], 4200.0
 
 	tile = hgtfile.OpenHgt("N51E001.hgt.zip")
 	tileNorm = (tile.astype(float) - tile.min()) / (tile.max() - tile.min())
@@ -236,6 +236,8 @@ def run():
 		if pressed[K_z]:
 			camAlt += 100000. * time_passed_seconds
 		
+
+		#print camLatLon, camAlt
 		camPos = proj.Proj(math.radians(camLatLon[0]), math.radians(camLatLon[1]), camAlt)
 		camTarg = proj.Proj(math.radians(camLatLon[0]), math.radians(camLatLon[1]), 0.)
 		camOffNth = proj.Proj(math.radians(camLatLon[0]+0.5), math.radians(camLatLon[1]), 0.)
