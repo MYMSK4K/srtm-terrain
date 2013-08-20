@@ -1,6 +1,6 @@
 SCREEN_SIZE = (800, 600)
 
-from math import radians 
+import math 
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -8,71 +8,99 @@ from OpenGL.GLU import *
 import pygame
 import hgtfile
 from pygame.locals import *
+import numpy as np
 
 def resize(width, height):
 	
 	glViewport(0, 0, width, height)
 	glMatrixMode(GL_PROJECTION)
 	glLoadIdentity()
-	gluPerspective(60.0, float(width)/height, .1, 1000.)
+	gluPerspective(60.0, float(width)/height, .001, 1000.)
 	glMatrixMode(GL_MODELVIEW)
 	glLoadIdentity()
 
 
 def init():
 	
-	glEnable(GL_DEPTH_TEST)
+	glDisable(GL_DEPTH_TEST)
 	glClearColor(1.0, 1.0, 1.0, 0.0)
 
-class QuadTile():
-	def __init__(self, tile, xinds = None, yinds = None, vmin = None, vmax = None, depth = 0):
 
+class ProjFunc:
+	def __init__(self):
+		pass
+
+	def Proj(self, lat, lon, alt):
+
+		R = 6371. + alt / 1000.
+		x = R * math.cos(lat) * math.cos(lon)
+		y = R * math.cos(lat) * math.sin(lon)
+		z = R * math.sin(lat)
+		return (x, y, z)
+
+class QuadTileData:
+	def __init__(self, tile, lat1, lat2, lon1, lon2):
 		self.tile = tile
-		if vmax is not None: self.max = vmax
-		else: self.max = tile.max()
-		if vmin is not None: self.min = vmin
-		else: self.min = tile.min()
+		self.max = tile.max()
+		self.min = tile.min()
+		self.proj = ProjFunc()
+		lats = (math.radians(lat1), math.radians(lat2))
+		lons = (math.radians(lon1), math.radians(lon2))
+		self.latLims = (min(lats), max(lats))
+		self.lonLims = (min(lons), max(lons))
+		self.latRange = self.latLims[1] - self.latLims[0]
+		self.lonRange = self.lonLims[1] - self.lonLims[0]
 
-		if xinds is not None: self.xinds = xinds
-		else: self.xinds = (0, tile.shape[0]-1)
-		if yinds is not None: self.yinds = yinds
-		else: self.yinds = (0, tile.shape[1]-1)
+class QuadTile():
+	def __init__(self, data, xinds = None, yinds = None, depth = 0):
+
+		self.data = data
 		self.childTiles = []
 		self.depth = depth
-
+		if xinds is not None: self.xinds = xinds
+		else: self.xinds = (0, data.tile.shape[0]-1)
+		if yinds is not None: self.yinds = yinds
+		else: self.yinds = (0, data.tile.shape[1]-1)
+		
 		if self.xinds[1]-self.xinds[0] > 50 or self.yinds[1]-self.yinds[0] > 50:
 			self.Split()
 
 	def Draw(self):
 
-		x1 = float(self.xinds[0]) / self.tile.shape[0]
-		x2 = float(self.xinds[1]) / self.tile.shape[0]
-		y1 = float(self.yinds[0]) / self.tile.shape[1]
-		y2 = float(self.yinds[1]) / self.tile.shape[1]
-		c11 = self.tile[self.xinds[0], self.yinds[0]] 
-		c12 = self.tile[self.xinds[0], self.yinds[1]]
-		c21 = self.tile[self.xinds[1], self.yinds[0]]
-		c22 = self.tile[self.xinds[1], self.yinds[1]]
+		x1 = float(self.xinds[0]) * self.data.latRange / self.data.tile.shape[0] + self.data.latLims[0]
+		x2 = float(self.xinds[1]) * self.data.latRange / self.data.tile.shape[0] + self.data.latLims[0]
+		y1 = float(self.yinds[0]) * self.data.lonRange / self.data.tile.shape[1] + self.data.lonLims[0]
+		y2 = float(self.yinds[1]) * self.data.lonRange / self.data.tile.shape[1] + self.data.lonLims[0]
+
+		p11 = self.data.proj.Proj(x1, y1, 0.)
+		p12 = self.data.proj.Proj(x1, y2, 0.)
+		p21 = self.data.proj.Proj(x2, y1, 0.)
+		p22 = self.data.proj.Proj(x2, y2, 0.)
+
+		c11 = self.data.tile[self.xinds[0], self.yinds[0]] 
+		c12 = self.data.tile[self.xinds[0], self.yinds[1]]
+		c21 = self.data.tile[self.xinds[1], self.yinds[0]]
+		c22 = self.data.tile[self.xinds[1], self.yinds[1]]
 
 		if len(self.childTiles) == 0:
 			if 1:
 				glBegin(GL_QUADS)
 				glColor4f(c11, c11, c11, 1.)
-				glVertex(x1, y1, 0.)
+				glVertex(*p11)
 				glColor4f(c21, c21, c21, 1.)
-				glVertex(x2, y1, 0.)
+				glVertex(*p21)
 				glColor4f(c22, c22, c22, 1.)
-				glVertex(x2, y2, 0.)
+				glVertex(*p22)
 				glColor4f(c12, c12, c12, 1.)
-				glVertex(x1, y2, 0.)
+				glVertex(*p12)
 				glEnd()
-			else:
-				glColor4f(0., 0., 0., 1.)
+			if 1:
+				glColor4f(1., 1., 0., 1.)
 				glBegin(GL_LINE_LOOP)
-				glVertex(x1, y1, 0.)
-				glVertex(x2, y1, 0.)
-				glVertex(x2, y2, 0.)
-				glVertex(x1, y2, 0.)
+				glVertex(*p11)
+				glVertex(*p21)
+				glVertex(*p22)
+				glVertex(*p12)
 				glEnd()
 		else:
 			for t in self.childTiles:
@@ -83,10 +111,10 @@ class QuadTile():
 		ysp = int(round((self.yinds[0] + self.yinds[1]) * 0.5))
 
 		self.childTiles = []
-		self.childTiles.append(QuadTile(self.tile, (self.xinds[0], xsp), (self.yinds[0], ysp), self.min, self.max, self.depth + 1))
-		self.childTiles.append(QuadTile(self.tile, (xsp, self.xinds[1]), (self.yinds[0], ysp), self.min, self.max, self.depth + 1))
-		self.childTiles.append(QuadTile(self.tile, (self.xinds[0], xsp), (ysp, self.yinds[1]), self.min, self.max, self.depth + 1))
-		self.childTiles.append(QuadTile(self.tile, (xsp, self.xinds[1]), (ysp, self.yinds[1]), self.min, self.max, self.depth + 1))
+		self.childTiles.append(QuadTile(self.data, (self.xinds[0], xsp), (self.yinds[0], ysp), self.depth + 1))
+		self.childTiles.append(QuadTile(self.data, (xsp, self.xinds[1]), (self.yinds[0], ysp), self.depth + 1))
+		self.childTiles.append(QuadTile(self.data, (self.xinds[0], xsp), (ysp, self.yinds[1]), self.depth + 1))
+		self.childTiles.append(QuadTile(self.data, (xsp, self.xinds[1]), (ysp, self.yinds[1]), self.depth + 1))
 
 def run():
 	
@@ -102,11 +130,16 @@ def run():
 	glMaterial(GL_FRONT, GL_DIFFUSE, (1.0, 1.0, 1.0, 1.0))
 
 	movement_speed = 5.0
-	camPos = [0., 0., 2.]
+
+	proj = ProjFunc()
+	
+	camLatLon = [51.5, 1.5]
+	camAlt = 100000.
 
 	tile = hgtfile.OpenHgt("N51E001.hgt.zip")
 	tileNorm = (tile.astype(float) - tile.min()) / (tile.max() - tile.min())
-	srtmTile = QuadTile(tileNorm)
+	tileData = QuadTileData(tileNorm, 51., 52., 1., 2.)
+	srtmTile = QuadTile(tileData)
 
 	while True:
 		
@@ -122,31 +155,33 @@ def run():
 		pressed = pygame.key.get_pressed()
 
 		if pressed[K_LEFT]:
-			camPos[0] -= 1. * time_passed_seconds
+			camLatLon[1] -= 1. * time_passed_seconds
 		if pressed[K_RIGHT]:
-			camPos[0] += 1. * time_passed_seconds
+			camLatLon[1] += 1. * time_passed_seconds
 		if pressed[K_UP]:
-			camPos[1] += 1. * time_passed_seconds
+			camLatLon[0] += 1. * time_passed_seconds
 		if pressed[K_DOWN]:
-			camPos[1] -= 1. * time_passed_seconds
+			camLatLon[0] -= 1. * time_passed_seconds
 		if pressed[K_a]:
-			camPos[2] -= 1. * time_passed_seconds
+			camAlt -= 100000. * time_passed_seconds
 		if pressed[K_z]:
-			camPos[2] += 1. * time_passed_seconds
+			camAlt += 100000. * time_passed_seconds
 		
+		camPos = proj.Proj(math.radians(camLatLon[0]), math.radians(camLatLon[1]), camAlt)
+		camTarg = proj.Proj(math.radians(camLatLon[0]), math.radians(camLatLon[1]), 0.)
+		camOffNth = proj.Proj(math.radians(camLatLon[0]+0.5), math.radians(camLatLon[1]), 0.)
+		camUp = np.array(camOffNth) - np.array(camTarg)
+		camUpMag = np.linalg.norm(camUp, ord=2)
+		camUp /= camUpMag
+
 		# Clear the screen, and z-buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 						
-		time_passed = clock.tick()
-		time_passed_seconds = time_passed / 1000.
-		
-		pressed = pygame.key.get_pressed()
-		
 		glMatrixMode(GL_MODELVIEW)
 		glLoadIdentity()
 		gluLookAt(camPos[0], camPos[1], camPos[2], # look from camera XYZ
-			camPos[0], camPos[1], 0., # look at the origin
-			0, 1, 0); # up
+			camTarg[0], camTarg[1], camTarg[2], # look at the origin
+			camUp[0], camUp[1], camUp[2]); # up
 
 		srtmTile.Draw()
 
