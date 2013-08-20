@@ -88,29 +88,6 @@ class QuadTile():
 		self.childTiles.append(QuadTile(self.tile, (self.xinds[0], xsp), (ysp, self.yinds[1]), self.min, self.max, self.depth + 1))
 		self.childTiles.append(QuadTile(self.tile, (xsp, self.xinds[1]), (ysp, self.yinds[1]), self.min, self.max, self.depth + 1))
 
-class SrtmTile():
-	def __init__(self):
-		self.tile = hgtfile.OpenHgt("N51E001.hgt.zip")
-		self.max = self.tile.max()
-		self.min = self.tile.min()
-		self.tileNorm = (self.tile.astype(float) - self.min) / (self.max - self.min)
-		print self.tile.shape
-
-		xsp = self.tile.shape[0] / 2
-		ysp = self.tile.shape[1] / 2
-		self.childTiles = []
-		self.childTiles.append(QuadTile(self.tileNorm, (0, xsp), (0, ysp), self.min, self.max))
-		self.childTiles.append(QuadTile(self.tileNorm, (xsp, self.tile.shape[0]-1), (0, ysp), self.min, self.max))
-		self.childTiles.append(QuadTile(self.tileNorm, (0, xsp), (ysp, self.tile.shape[1]-1), self.min, self.max))
-		self.childTiles.append(QuadTile(self.tileNorm, (xsp, self.tile.shape[0]-1), (ysp, self.tile.shape[1]-1), self.min, self.max))
-
-	def Draw(self):
-
-		self.childTiles[0].Draw()
-		self.childTiles[1].Draw()
-		self.childTiles[2].Draw()
-		self.childTiles[3].Draw()
-
 def run():
 	
 	pygame.init()
