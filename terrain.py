@@ -25,17 +25,22 @@ def init():
 	glClearColor(1.0, 1.0, 1.0, 0.0)
 
 class QuadTile():
-	def __init__(self, tile, xinds, yinds, vmin, vmax, depth = 0):
+	def __init__(self, tile, xinds = None, yinds = None, vmin = None, vmax = None, depth = 0):
 
 		self.tile = tile
-		self.max = vmax
-		self.min = vmin
-		self.xinds = xinds
-		self.yinds = yinds
+		if vmax is not None: self.max = vmax
+		else: self.max = tile.max()
+		if vmin is not None: self.min = vmin
+		else: self.min = tile.min()
+
+		if xinds is not None: self.xinds = xinds
+		else: self.xinds = (0, tile.shape[0]-1)
+		if yinds is not None: self.yinds = yinds
+		else: self.yinds = (0, tile.shape[1]-1)
 		self.childTiles = []
 		self.depth = depth
 
-		if xinds[1]-xinds[0] > 10 or yinds[1]-yinds[0] > 10:
+		if self.xinds[1]-self.xinds[0] > 50 or self.yinds[1]-self.yinds[0] > 50:
 			self.Split()
 
 	def Draw(self):
@@ -50,7 +55,7 @@ class QuadTile():
 		c22 = self.tile[self.xinds[1], self.yinds[1]]
 
 		if len(self.childTiles) == 0:
-			if 0:
+			if 1:
 				glBegin(GL_QUADS)
 				glColor4f(c11, c11, c11, 1.)
 				glVertex(x1, y1, 0.)
@@ -122,7 +127,9 @@ def run():
 	movement_speed = 5.0
 	camPos = [0., 0., 2.]
 
-	srtmTile = SrtmTile()
+	tile = hgtfile.OpenHgt("N51E001.hgt.zip")
+	tileNorm = (tile.astype(float) - tile.min()) / (tile.max() - tile.min())
+	srtmTile = QuadTile(tileNorm)
 
 	while True:
 		
