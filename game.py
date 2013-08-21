@@ -42,6 +42,8 @@ class Person(object):
 		self.attackRange = 5.
 		self.fireTime = None
 		self.firePeriod = 1.
+		self.health = 1.
+		self.radius = 1.
 
 	def Draw(self):
 		if self.faction == 0:
@@ -50,21 +52,22 @@ class Person(object):
 			glColor3f(0., 1., 0.)
 		if self.faction == 2:
 			glColor3f(0., 0., 1.)
+		if self.health == 0.:
+			glColor3f(0.3, 0.3, 0.3)
 
 		glPushMatrix()
 		glTranslatef(self.pos[0], self.pos[1], 0.)
 		
 		glBegin(GL_POLYGON)
-		radius = 1.
 		for i in range(10):
-			glVertex3f(radius * math.sin(i * 2. * math.pi / 10.), radius * math.cos(i * 2. * math.pi / 10.), 0.)
+			glVertex3f(self.radius * math.sin(i * 2. * math.pi / 10.), self.radius * math.cos(i * 2. * math.pi / 10.), 0.)
 		glEnd()
 
 		glColor3f(0., 0., 0.)
 		glBegin(GL_POLYGON)
-		glVertex3f(radius * math.sin(self.heading), radius * math.cos(self.heading), 0.)
-		glVertex3f(0.1 * radius * math.sin(self.heading + math.pi / 2), 0.1 * radius * math.cos(self.heading + math.pi / 2), 0.)
-		glVertex3f(0.1 * radius * math.sin(self.heading - math.pi / 2), 0.1 * radius * math.cos(self.heading - math.pi / 2), 0.)
+		glVertex3f(self.radius * math.sin(self.heading), self.radius * math.cos(self.heading), 0.)
+		glVertex3f(0.1 * self.radius * math.sin(self.heading + math.pi / 2), 0.1 * self.radius * math.cos(self.heading + math.pi / 2), 0.)
+		glVertex3f(0.1 * self.radius * math.sin(self.heading - math.pi / 2), 0.1 * self.radius * math.cos(self.heading - math.pi / 2), 0.)
 		glEnd()
 
 		glPopMatrix()
@@ -113,27 +116,81 @@ class Person(object):
 				if durationSinceFiring is None or self.firePeriod < durationSinceFiring:
 					self.fireTime = timeNow
 					fireEvent = events.Event("fireshell")
-					fireEvent.targetPos = getEnemyPos
+					fireEvent.targetPos = getEnemyPos.copy()
 					fireEvent.targetId = self.attackOrder
 					fireEvent.firerId = self.objId
-					fireEvent.firerPos = self.pos
+					fireEvent.firerPos = self.pos.copy()
 					fireEvent.speed = 100.
+					self.mediator.Send(fireEvent)
+
+	def CollidesWithPoint(self, pos):
+		direction = np.array(pos) - self.pos
+		dist = np.linalg.norm(direction, ord=2)
+		return dist < self.radius
 
 class Shell(object):
 	def __init__(self, mediator):
-		pass
+		self.pos = np.array((0., 0.))
+		self.targetPos = None
+		self.targetId = None
+		self.firerId = None
+		self.firerPos = None
+		self.speed = 100.
+		self.radius = 0.05
+		self.objId = uuid.uuid4()
+		self.player = None
+		self.health = 1.
+		self.mediator = mediator
+		self.faction = None
+		self.attackOrder = None
 
 	def Draw(self):
-		pass
+		glPushMatrix()
+		glTranslatef(self.pos[0], self.pos[1], 0.)
+		glColor3f(0.5, 0.5, 0.5)
+
+		glBegin(GL_POLYGON)
+		for i in range(10):
+			glVertex3f(self.radius * math.sin(i * 2. * math.pi / 10.), self.radius * math.cos(i * 2. * math.pi / 10.), 0.)
+		glEnd()
+
+		glPopMatrix()
 
 	def Update(self, timeElapsed):
-		pass
+		direction = np.array(self.targetPos) - np.array(self.pos)
+		dirMag = np.linalg.norm(direction, ord=2)
+		if dirMag > 0.:
+			direction /= dirMag
+
+		if dirMag < timeElapsed * self.speed:
+			self.pos = self.targetPos
+			detonateEvent = events.Event("detonate")
+			detonateEvent.pos = self.pos.copy()
+			detonateEvent.objId = self.objId
+			detonateEvent.firerId = self.firerId
+			self.mediator.Send(detonateEvent)
+		else:
+			self.pos += direction * timeElapsed * self.speed
+
+	def CollidesWithPoint(self, pos):
+		return False
 
 class GameObjects(events.EventCallback):
 	def __init__(self, mediator):
 		super(GameObjects, self).__init__(mediator)
 		mediator.AddListener("getpos", self)
+		mediator.AddListener("fireshell", self)
+		mediator.AddListener("detonate", self)
+		mediator.AddListener("targetdestroyed", self)
+		mediator.AddListener("targethit", self)
+		mediator.AddListener("shellmiss", self)
+		mediator.AddListener("attackorder", self)
+		mediator.AddListener("moveorder", self)
+		mediator.AddListener("stoporder", self)
+
 		self.objs = {}
+		self.newObjs = [] #Add these to main object dict after iteration
+		self.objsToRemove = [] #Remove these after current iteration
 
 	def Add(self, obj):
 		self.objs[obj.objId] = obj
@@ -144,20 +201,97 @@ class GameObjects(events.EventCallback):
 				raise Exception("Unknown object id")
 			return self.objs[event.objId].pos
 
+		if event.type == "fireshell":
+			print event.type
+
+			shot = Shell(self.mediator)
+			shot.targetPos = event.targetPos
+			shot.targetId = event.targetId
+			shot.firerId = event.firerId
+			shot.pos = event.firerPos
+			shot.speed = event.speed
+			self.newObjs.append(shot)
+
+		if event.type == "detonate":
+			print event.type
+			self.objsToRemove.append(event.objId)
+
+			#Check if it hit
+			hitCount = 0
+			for objId in self.objs:
+				obj = self.objs[objId]
+				hit = obj.CollidesWithPoint(event.pos)
+
+				if hit and obj.health > 0.:
+					hitCount += 1
+					obj.health -= 0.1
+
+					hitEvent = events.Event("targethit")
+					hitEvent.objId = obj.objId
+					hitEvent.firerId = event.firerId
+					self.mediator.Send(hitEvent)
+
+					if obj.health < 0.: obj.health = 0.
+					if obj.health == 0:
+						destroyEvent = events.Event("targetdestroyed")
+						destroyEvent.objId = obj.objId
+						destroyEvent.firerId = event.firerId
+						self.mediator.Send(destroyEvent)
+			
+			if hitCount == 0:
+				hitEvent = events.Event("shellmiss")
+				hitEvent.firerId = event.firerId
+				self.mediator.Send(hitEvent)
+
+		if event.type == "targetdestroyed":
+			print event.type
+
+			#Stop attacking targets that are dead
+			for objId in self.objs:
+				obj = self.objs[objId]
+				if obj.attackOrder == event.objId:
+					obj.Attack(None)
+
+		if event.type == "targethit":
+			print event.type
+
+		if event.type == "shellmiss":
+			print event.type
+
+		if event.type == "attackorder":
+			print event.type
+
+		if event.type == "moveorder":
+			print event.type
+
+		if event.type == "stoporder":
+			print event.type
+
 	def Update(self, timeElapsed):
 		for objId in self.objs:
 			self.objs[objId].Update(timeElapsed)
+
+		#Update list of objects with new items
+		for obj in self.newObjs:
+			self.objs[obj.objId] = obj
+		self.newObjs = []
+
+		#Remove objects that are due to be deleted
+		for objId in self.objsToRemove:
+			del self.objs[objId]
+		self.objsToRemove = []
 
 	def Draw(self):
 		for objId in self.objs:
 			self.objs[objId].Draw()
 
 	def ObjNearPos(self, pos, notFaction = None):
-		bestDist = None
+		bestDist, bestUuid = None, None
 		pos = np.array(pos)
 		for objId in self.objs:
 			obj = self.objs[objId]
-			if notFaction is not None and obj.faction == notFaction: continue
+			if notFaction is not None and obj.faction == notFaction: continue #Ignore friendlies
+			if obj.health == 0.: continue #Ignore dead targets
 			direction = obj.pos - pos
 			mag = np.linalg.norm(direction, ord=2)
 			if bestDist is None or mag < bestDist:
@@ -173,15 +307,37 @@ class GameObjects(events.EventCallback):
 				if obj.player != 1: continue
 				obj.MoveTo(worldPos)
 
+				moveOrder = events.Event("moveorder")
+				moveOrder.objId = obj.objId
+				moveOrder.pos = worldPos
+				self.mediator.Send(moveOrder)
+
 		if button == 3:
 			bestUuid, bestDist = self.ObjNearPos(worldPos, 1)
-			print bestUuid, bestDist
+			clickTolerance = 5.
 
-			if bestDist < 5.:
+			if bestUuid is not None and bestDist < clickTolerance:
 				for objId in self.objs:
 					obj = self.objs[objId]
 					if obj.player != 1: continue
 					obj.Attack(bestUuid)
+
+					if bestUuid is not None:
+						attackOrder = events.Event("attackorder")
+						attackOrder.attackerId = obj.objId
+						attackOrder.targetId = bestUuid
+						self.mediator.Send(attackOrder)
+
+			if bestUuid is None or bestDist >= clickTolerance:
+				for objId in self.objs:
+					obj = self.objs[objId]
+					if obj.player != 1: continue
+					#Stop attack
+					obj.Attack(None)
+
+					stopOrder = events.Event("stoporder")
+					stopOrder.objId = obj.objId
+					self.mediator.Send(stopOrder)
 
 ### Main Program
 
@@ -199,7 +355,7 @@ def run():
 	glMaterial(GL_FRONT, GL_DIFFUSE, (1.0, 1.0, 1.0, 1.0))
 
 	movement_speed = 5.0
-	camPos = [0., 0., 10.]
+	camPos = [0., 0., 30.]
 
 	eventMediator = events.EventMediator()
 
@@ -224,7 +380,6 @@ def run():
 			if event.type == KEYUP and event.key == K_ESCAPE:
 				return
 			if event.type == MOUSEBUTTONDOWN:
-				print event
 				worldPos = gluUnProject(event.pos[0], SCREEN_SIZE[1] - event.pos[1], 1.)
 				rayVec = np.array(worldPos) - np.array(camPos)
 				rayVecMag = np.linalg.norm(rayVec, ord=2)
@@ -234,7 +389,7 @@ def run():
 				#Scale ray based on altitude
 				scaleFac = -camPos[2] / rayVec[2]
 				clickWorld = scaleFac * rayVec + np.array(camPos)
-				print clickWorld
+				#print "clickWorld", clickWorld
 
 				gameObjects.WorldClick((clickWorld[0], clickWorld[1]), event.button)
 
