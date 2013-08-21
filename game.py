@@ -112,8 +112,12 @@ class Person(object):
 					durationSinceFiring = timeNow - self.fireTime
 				if durationSinceFiring is None or self.firePeriod < durationSinceFiring:
 					self.fireTime = timeNow
-				
-
+					fireEvent = events.Event("fireshell")
+					fireEvent.targetPos = getEnemyPos
+					fireEvent.targetId = self.attackOrder
+					fireEvent.firerId = self.objId
+					fireEvent.firerPos = self.pos
+					fireEvent.speed = 100.
 
 class Shell(object):
 	def __init__(self, mediator):
