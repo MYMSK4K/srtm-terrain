@@ -28,7 +28,7 @@ def init():
 
 ### Person
 
-class Person:
+class Person(object):
 	def __init__(self, mediator):
 		self.pos = np.array((0., 0.))
 		self.heading = 0. #Radians
@@ -40,6 +40,8 @@ class Person:
 		self.objId = uuid.uuid4()
 		self.mediator = mediator
 		self.attackRange = 5.
+		self.fireTime = None
+		self.firePeriod = 1.
 
 	def Draw(self):
 		if self.faction == 0:
@@ -99,8 +101,29 @@ class Person:
 			if dirMag > 0.:
 				direction /= dirMag
 
-			if dirMag > self.attackRange:
+			if dirMag > self.attackRange * 0.95:
 				self.pos += direction * timeElapsed * self.speed
+
+			if dirMag <= self.attackRange:
+				#Check if we can fire
+				durationSinceFiring = None
+				timeNow = (pygame.time.get_ticks() / 1000.)
+				if self.fireTime is not None:
+					durationSinceFiring = timeNow - self.fireTime
+				if durationSinceFiring is None or self.firePeriod < durationSinceFiring:
+					self.fireTime = timeNow
+				
+
+
+class Shell(object):
+	def __init__(self, mediator):
+		pass
+
+	def Draw(self):
+		pass
+
+	def Update(self, timeElapsed):
+		pass
 
 class GameObjects(events.EventCallback):
 	def __init__(self, mediator):
