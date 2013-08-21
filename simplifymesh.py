@@ -42,12 +42,12 @@ class SimplifyMesh:
 			triSol.append(sol)
 
 		#For each point in the original surface, calc error
-		err = 0.
+		err = []
 		for i in range(self.tile.shape[0]):
 			for j in range(self.tile.shape[1]):
 				he = self.EstimateHeightAtPoint((i, j), de, triSol)
-				err += abs(he - self.tile[i, j])
-		return err
+				err.append(abs(he - self.tile[i, j]))
+		return max(err)
 
 	def EstimateHeightAtPoint(self, pt, de, triSol):
 		simp = de.find_simplex(pt)
@@ -70,6 +70,28 @@ class SimplifyMesh:
 		res.sort()
 		return res[0]
 
+	def RemovePointsLessThanErr(self, errThresh = 1.):
+
+		cursor = 0
+		while cursor < len(self.protect):
+			if self.protect[cursor]:
+				cursor += 1
+				continue
+			testPts = []
+			testVals = []
+			for count, (pt, v) in enumerate(zip(self.pts, self.val)):
+				if count == cursor: continue
+				testPts.append(pt)
+				testVals.append(v)
+			err = self.EvalTris(testPts, testVals)
+			print cursor, self.pts[cursor], err, len(self.protect)
+			if err < errThresh:
+				del self.pts[cursor]
+				del self.val[cursor]
+				del self.protect[cursor]
+			else:
+				cursor += 1
+
 	def Calc(self, errThresh = 1.):
 		running = True
 		while running:
@@ -90,11 +112,15 @@ class SimplifyMesh:
 		plt.plot(points[:,0], points[:,1], 'o')
 		plt.show()
 
+	def GetCurrentMesh(self):
+		return self.pts
+
 if __name__=="__main__":
 	
 	tile = hgtfile.OpenHgt("N51E001.hgt.zip")
 
-	simplify = SimplifyMesh(tile[:19,:19])
-	simplify.Calc()
+	simplify = SimplifyMesh(tile[:,:])
+	simplify.RemovePointsLessThanErr(1.)
 	simplify.VisTris()
+	print simplify.GetCurrentMesh()
 
