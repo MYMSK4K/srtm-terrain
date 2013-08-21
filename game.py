@@ -1,7 +1,7 @@
 
 SCREEN_SIZE = (800, 600)
 
-import math 
+import math, uuid, events
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -28,7 +28,7 @@ def init():
 
 ### Person
 
-class Person():
+class Person:
 	def __init__(self):
 		self.pos = np.array((0., 0.))
 		self.heading = 0. #Radians
@@ -37,6 +37,7 @@ class Person():
 		self.moveOrder = None
 		self.attackOrder = None
 		self.speed = 5.
+		self.objId = uuid.uuid4()
 
 	def Draw(self):
 		if self.faction == 0:
@@ -65,7 +66,12 @@ class Person():
 		glPopMatrix()
 
 	def MoveTo(self, pos):
-		self.moveOrder = np.array((pos[0], pos[1]))
+		self.moveOrder = np.array(pos)
+		self.attackOrder = None
+
+	def Attack(self, uuid):
+		self.attackOrder = uuid
+		self.moveOrder = None
 
 	def Update(self, timeElapsed):
 		
@@ -81,6 +87,56 @@ class Person():
 			else:
 				self.pos += direction * timeElapsed * self.speed
 
+class GameObjects(events.EventCallback):
+	def __init__(self, mediator):
+		super(GameObjects, self).__init__(mediator)
+		mediator.AddListener("getpos", self)
+		self.objs = {}
+
+	def Add(self, obj):
+		self.objs[obj.objId] = obj
+
+	def ProcessEvent(self, event):
+		print event
+
+	def Update(self, timeElapsed):
+		for objId in self.objs:
+			self.objs[objId].Update(timeElapsed)
+
+	def Draw(self):
+		for objId in self.objs:
+			self.objs[objId].Draw()
+
+	def ObjNearPos(self, pos, notFaction = None):
+		bestDist = None
+		pos = np.array(pos)
+		for objId in self.objs:
+			obj = self.objs[objId]
+			if notFaction is not None and obj.faction == notFaction: continue
+			direction = obj.pos - pos
+			mag = np.linalg.norm(direction, ord=2)
+			if bestDist is None or mag < bestDist:
+				bestDist = mag
+				bestUuid = obj.objId
+
+		return bestUuid, bestDist
+
+	def WorldClick(self, worldPos, button):
+		if button == 1:
+			for objId in self.objs:
+				obj = self.objs[objId]
+				if obj.player != 1: continue
+				obj.MoveTo(worldPos)
+
+		if button == 3:
+			bestUuid, bestDist = self.ObjNearPos(worldPos, 1)
+			print bestUuid, bestDist
+
+			if bestDist < 5.:
+				for objId in self.objs:
+					obj = self.objs[objId]
+					if obj.player != 1: continue
+					obj.Attack(bestUuid)
 
 ### Main Program
 
@@ -100,17 +156,17 @@ def run():
 	movement_speed = 5.0
 	camPos = [0., 0., 10.]
 
-	gameObjs = []
+	eventMediator = events.EventMediator()
+
+	gameObjects = GameObjects(eventMediator)
 	player = Person()
 	player.player = 1
 	player.faction = 1
-	gameObjs.append(player)
+	gameObjects.Add(player)
 	enemy = Person()
 	enemy.faction = 2
 	enemy.pos = np.array((20., 10.))
-	gameObjs.append(enemy)
-
-	eventMediator = events.EventMediator()
+	gameObjects.Add(enemy)
 
 	while True:
 		
@@ -135,15 +191,7 @@ def run():
 				clickWorld = scaleFac * rayVec + np.array(camPos)
 				print clickWorld
 
-				if event.button == 1:
-					for obj in gameObjs:
-						if obj.player != 1: continue
-						obj.MoveTo(clickWorld)
-
-				if event.button == 3:
-					for obj in gameObjs:
-						if obj.player != 1: continue
-						obj.attackOrder = clickWorld
+				gameObjects.WorldClick((clickWorld[0], clickWorld[1]), event.button)
 
 		pressed = pygame.key.get_pressed()
 
@@ -160,8 +208,7 @@ def run():
 		if pressed[K_z]:
 			camPos[2] += 10. * time_passed_seconds
 		
-		for obj in gameObjs:
-			obj.Update(time_passed_seconds)
+		gameObjects.Update(time_passed_seconds)
 
 		# Clear the screen, and z-buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -172,8 +219,7 @@ def run():
 			camPos[0], camPos[1], 0., # look at the ground plane
 			0., 1., 0.); # up
 
-		for obj in gameObjs:
-			obj.Draw()
+		gameObjects.Draw()
 
 		# Show the screen
 		pygame.display.flip()

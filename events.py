@@ -1,20 +1,21 @@
 
 import uuid
 
-class Event:
+class Event(object):
 	def __init__(self):
 		self.type = "undefined"
 		self.dest = None
 		self.src = None
 
-class EventCallback:
-	def __init__(self):
+class EventCallback(object):
+	def __init__(self, mediator):
 		self.callbackId = uuid.uuid4()
+		self.mediator = mediator
 
 	def ProcessEvent(self, event):
 		pass
 
-class EventMediator:
+class EventMediator(object):
 	def __init__(self):
 		self.listeners = {}
 
@@ -39,6 +40,6 @@ class EventMediator:
 
 		if ty not in self.listeners:
 			self.listeners[ty] = {}
-		self.listeners[ty][callbackObj.callbackId] = callbackId
+		self.listeners[ty][callbackObj.callbackId] = callbackObj
 
 
