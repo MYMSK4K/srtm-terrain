@@ -25,6 +25,7 @@ def init():
 	
 	glDisable(GL_DEPTH_TEST)
 	glClearColor(1.0, 1.0, 1.0, 0.0)
+	glEnable(GL_BLEND)
 
 ### Person
 
@@ -34,6 +35,7 @@ class GameObj(object):
 		self.objId = uuid.uuid4()
 		self.player = None
 		self.faction = 0
+		self.pos = np.array((0., 0.))
 
 	def Draw(self):
 		pass
@@ -60,7 +62,6 @@ class Person(GameObj):
 	def __init__(self, mediator):
 		super(Person, self).__init__(mediator)
 
-		self.pos = np.array((0., 0.))
 		self.heading = 0. #Radians
 		self.moveOrder = None
 		self.attackOrder = None
@@ -164,7 +165,6 @@ class Shell(GameObj):
 	def __init__(self, mediator):
 		super(Shell, self).__init__(mediator)
 
-		self.pos = np.array((0., 0.))
 		self.targetPos = None
 		self.targetId = None
 		self.firerId = None
@@ -208,7 +208,34 @@ class Shell(GameObj):
 class AreaObjective(GameObj):
 	def __init__(self, mediator):
 		super(AreaObjective, self).__init__(mediator)
+		self.radius = 10.
 
+	def Draw(self):
+
+		if self.faction == 0:
+			glColor3f(1., 0., 0.)
+		if self.faction == 1:
+			glColor3f(0., 1., 0.)
+		if self.faction == 2:
+			glColor3f(0., 0., 1.)
+
+		glPushMatrix()
+		glTranslatef(self.pos[0], self.pos[1], 0.)
+
+		glBegin(GL_LINE_LOOP)
+		for i in range(50):
+			glVertex3f(self.radius * math.sin(i * 2. * math.pi / 50.), self.radius * math.cos(i * 2. * math.pi / 50.), 0.)
+		glEnd()
+
+		glPopMatrix()
+
+	def Update(self, timeElapsed):
+		pass
+
+	def CollidesWithPoint(self, pos):
+		direction = np.array(pos) - self.pos
+		dist = np.linalg.norm(direction, ord=2)
+		return dist < self.radius
 
 ###Object Manager
 
@@ -224,10 +251,13 @@ class GameObjects(events.EventCallback):
 		mediator.AddListener("attackorder", self)
 		mediator.AddListener("moveorder", self)
 		mediator.AddListener("stoporder", self)
+		mediator.AddListener("enterarea", self)
+		mediator.AddListener("exitarea", self)
 
 		self.objs = {}
 		self.newObjs = [] #Add these to main object dict after iteration
 		self.objsToRemove = [] #Remove these after current iteration
+		self.areaContents = {}
 
 	def Add(self, obj):
 		self.objs[obj.objId] = obj
@@ -304,6 +334,12 @@ class GameObjects(events.EventCallback):
 		if event.type == "stoporder":
 			print event.type
 
+		if event.type == "enterarea":
+			print event.type
+
+		if event.type == "exitarea":
+			print event.type
+
 	def Update(self, timeElapsed):
 		for objId in self.objs:
 			self.objs[objId].Update(timeElapsed)
@@ -317,6 +353,48 @@ class GameObjects(events.EventCallback):
 		for objId in self.objsToRemove:
 			del self.objs[objId]
 		self.objsToRemove = []
+
+		#Update list of areas
+		areas = set()
+		for objId in self.objs:
+			obj = self.objs[objId]
+			if isinstance(obj, AreaObjective):
+				areas.add(objId)
+				if objId not in self.areaContents:
+					self.areaContents[objId] = []
+
+		#Remove unused areas
+		areasToRemove = []
+		for areaId in self.areaContents:
+			if areaId not in areas:		
+				areasToRemove.append(areaId)
+		for areaId in areasToRemove:
+			del self.areaContents[areaId]
+
+		#Check the contents of areas
+		for areaId in self.areaContents:
+			area = self.objs[areaId]
+			contents = self.areaContents[areaId]
+			
+			for objId in self.objs:
+				obj = self.objs[objId]
+				if isinstance(obj, AreaObjective): continue
+				contains = area.CollidesWithPoint(obj.pos)
+				if contains and objId not in contents:
+					areaEvent = events.Event("enterarea")
+					areaEvent.objId = objId
+					areaEvent.areaId = areaId
+					self.mediator.Send(areaEvent)
+
+					contents.append(objId)
+					
+				if not contains and objId in contents:
+					areaEvent = events.Event("exitarea")
+					areaEvent.objId = objId
+					areaEvent.areaId = areaId
+					self.mediator.Send(areaEvent)
+
+					contents.remove(objId)			
 
 	def Draw(self):
 		for objId in self.objs:
@@ -409,6 +487,7 @@ def run():
 	gameObjects.Add(enemy)
 
 	area = AreaObjective(eventMediator)
+	area.pos = np.array((-15., 20.))
 	gameObjects.Add(area)
 
 	while True:
