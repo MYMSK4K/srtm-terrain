@@ -28,17 +28,43 @@ def init():
 
 ### Person
 
-class Person(object):
+class GameObj(object):
 	def __init__(self, mediator):
-		self.pos = np.array((0., 0.))
-		self.heading = 0. #Radians
+		self.mediator = mediator
+		self.objId = uuid.uuid4()
 		self.player = None
 		self.faction = 0
+
+	def Draw(self):
+		pass
+
+	def Update(self, timeElapsed):
+		pass
+
+	def GetHealth(self):
+		return None
+
+	def CollidesWithPoint(self, pos):
+		return False
+
+	def GetAttackTarget(self):
+		return None
+
+	def MoveTo(self, pos):
+		pass
+
+	def Attack(self, uuid):
+		pass
+
+class Person(GameObj):
+	def __init__(self, mediator):
+		super(Person, self).__init__(mediator)
+
+		self.pos = np.array((0., 0.))
+		self.heading = 0. #Radians
 		self.moveOrder = None
 		self.attackOrder = None
 		self.speed = 5.
-		self.objId = uuid.uuid4()
-		self.mediator = mediator
 		self.attackRange = 5.
 		self.fireTime = None
 		self.firePeriod = 1.
@@ -128,8 +154,16 @@ class Person(object):
 		dist = np.linalg.norm(direction, ord=2)
 		return dist < self.radius
 
-class Shell(object):
+	def GetHealth(self):
+		return self.health
+
+	def GetAttackTarget(self):
+		return self.attackOrder
+
+class Shell(GameObj):
 	def __init__(self, mediator):
+		super(Shell, self).__init__(mediator)
+
 		self.pos = np.array((0., 0.))
 		self.targetPos = None
 		self.targetId = None
@@ -137,11 +171,7 @@ class Shell(object):
 		self.firerPos = None
 		self.speed = 100.
 		self.radius = 0.05
-		self.objId = uuid.uuid4()
-		self.player = None
-		self.health = 1.
 		self.mediator = mediator
-		self.faction = None
 		self.attackOrder = None
 
 	def Draw(self):
@@ -172,8 +202,15 @@ class Shell(object):
 		else:
 			self.pos += direction * timeElapsed * self.speed
 
-	def CollidesWithPoint(self, pos):
-		return False
+	def GetHealth(self):
+		return 1.
+
+class AreaObjective(GameObj):
+	def __init__(self, mediator):
+		super(AreaObjective, self).__init__(mediator)
+
+
+###Object Manager
 
 class GameObjects(events.EventCallback):
 	def __init__(self, mediator):
@@ -249,7 +286,7 @@ class GameObjects(events.EventCallback):
 			#Stop attacking targets that are dead
 			for objId in self.objs:
 				obj = self.objs[objId]
-				if obj.attackOrder == event.objId:
+				if obj.GetAttackTarget() == event.objId:
 					obj.Attack(None)
 
 		if event.type == "targethit":
@@ -291,7 +328,9 @@ class GameObjects(events.EventCallback):
 		for objId in self.objs:
 			obj = self.objs[objId]
 			if notFaction is not None and obj.faction == notFaction: continue #Ignore friendlies
-			if obj.health == 0.: continue #Ignore dead targets
+			health = obj.GetHealth()
+			if health is None: continue
+			if health == 0.: continue #Ignore dead targets
 			direction = obj.pos - pos
 			mag = np.linalg.norm(direction, ord=2)
 			if bestDist is None or mag < bestDist:
@@ -368,6 +407,9 @@ def run():
 	enemy.faction = 2
 	enemy.pos = np.array((20., 10.))
 	gameObjects.Add(enemy)
+
+	area = AreaObjective(eventMediator)
+	gameObjects.Add(area)
 
 	while True:
 		
