@@ -53,7 +53,7 @@ class QuadTileData:
 
 class GeoMipMap():
 	def __init__(self, data, xinds = None, yinds = None, depth = 0):
-		
+
 		self.data = data
 		self.depth = depth
 		if xinds is not None: self.xinds = xinds
