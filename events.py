@@ -2,8 +2,8 @@
 import uuid
 
 class Event(object):
-	def __init__(self):
-		self.type = "undefined"
+	def __init__(self, ty):
+		self.type = ty
 		self.dest = None
 		self.src = None
 
@@ -19,7 +19,7 @@ class EventMediator(object):
 	def __init__(self):
 		self.listeners = {}
 
-	def SendMessage(self, msg):
+	def Send(self, msg):
 
 		if msg.type not in self.listeners:
 			#raise Exception("Unknown message type")
@@ -30,11 +30,14 @@ class EventMediator(object):
 			#Message is addressed to specific receiver
 			if msg.dest not in tyListeners:
 				raise Exception("Unknown message destination")
-			tyListeners[msg.dest].ProcessEvent(msg)
+			ret = tyListeners[msg.dest].ProcessEvent(msg)
+			return [ret,]
 		else:
 			#Message is a broadcast
+			ret = []
 			for li in tyListeners:
-				li.ProcessEvent(msg)
+				ret.append(tyListeners[li].ProcessEvent(msg))
+			return ret
 
 	def AddListener(self, ty, callbackObj):
 

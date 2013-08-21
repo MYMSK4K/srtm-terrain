@@ -29,7 +29,7 @@ def init():
 ### Person
 
 class Person:
-	def __init__(self):
+	def __init__(self, mediator):
 		self.pos = np.array((0., 0.))
 		self.heading = 0. #Radians
 		self.player = None
@@ -38,6 +38,8 @@ class Person:
 		self.attackOrder = None
 		self.speed = 5.
 		self.objId = uuid.uuid4()
+		self.mediator = mediator
+		self.attackRange = 5.
 
 	def Draw(self):
 		if self.faction == 0:
@@ -87,6 +89,19 @@ class Person:
 			else:
 				self.pos += direction * timeElapsed * self.speed
 
+		if self.attackOrder is not None:
+			event = events.Event("getpos")
+			event.objId = self.attackOrder
+			getEnemyPosRet = self.mediator.Send(event)
+			getEnemyPos = getEnemyPosRet[0]
+			direction = getEnemyPos - np.array(self.pos)
+			dirMag = np.linalg.norm(direction, ord=2)
+			if dirMag > 0.:
+				direction /= dirMag
+
+			if dirMag > self.attackRange:
+				self.pos += direction * timeElapsed * self.speed
+
 class GameObjects(events.EventCallback):
 	def __init__(self, mediator):
 		super(GameObjects, self).__init__(mediator)
@@ -97,7 +112,10 @@ class GameObjects(events.EventCallback):
 		self.objs[obj.objId] = obj
 
 	def ProcessEvent(self, event):
-		print event
+		if event.type == "getpos":
+			if event.objId not in self.objs:
+				raise Exception("Unknown object id")
+			return self.objs[event.objId].pos
 
 	def Update(self, timeElapsed):
 		for objId in self.objs:
@@ -159,11 +177,11 @@ def run():
 	eventMediator = events.EventMediator()
 
 	gameObjects = GameObjects(eventMediator)
-	player = Person()
+	player = Person(eventMediator)
 	player.player = 1
 	player.faction = 1
 	gameObjects.Add(player)
-	enemy = Person()
+	enemy = Person(eventMediator)
 	enemy.faction = 2
 	enemy.pos = np.array((20., 10.))
 	gameObjects.Add(enemy)
