@@ -33,7 +33,7 @@ class GameObj(object):
 	def __init__(self, mediator):
 		self.mediator = mediator
 		self.objId = uuid.uuid4()
-		self.player = None
+		self.playerId = None
 		self.faction = 0
 		self.pos = np.array((0., 0.))
 
@@ -444,7 +444,7 @@ class GameObjects(events.EventCallback):
 		if button == 1:
 			for objId in self.objs:
 				obj = self.objs[objId]
-				if obj.player != self.playerId: continue
+				if obj.playerId != self.playerId: continue
 				obj.MoveTo(worldPos)
 
 				moveOrder = events.Event("moveorder")
@@ -459,7 +459,7 @@ class GameObjects(events.EventCallback):
 			if bestUuid is not None and bestDist < clickTolerance:
 				for objId in self.objs:
 					obj = self.objs[objId]
-					if obj.player != self.playerId: continue
+					if obj.playerId != self.playerId: continue
 					obj.Attack(bestUuid)
 
 					if bestUuid is not None:
@@ -471,7 +471,7 @@ class GameObjects(events.EventCallback):
 			if bestUuid is None or bestDist >= clickTolerance:
 				for objId in self.objs:
 					obj = self.objs[objId]
-					if obj.player != self.playerId: continue
+					if obj.playerId != self.playerId: continue
 					#Stop attack
 					obj.Attack(None)
 
@@ -503,10 +503,14 @@ def run():
 	gameObjects = GameObjects(eventMediator)
 
 	player = Person(eventMediator)
-	player.player = uuid.uuid4()
+	player.playerId = uuid.uuid4()
 	player.faction = 1
 	gameObjects.Add(player)
-	gameObjects.playerId = player.player
+	gameObjects.playerId = player.playerId
+
+	addPlayerEvent = events.Event("addplayer")
+	addPlayerEvent.playerId = player.playerId
+	eventMediator.Send(addPlayerEvent)
 
 	startEvent = events.Event("gamestart")
 	eventMediator.Send(startEvent)

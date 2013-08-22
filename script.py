@@ -16,6 +16,7 @@ class Script(events.EventCallback):
 		mediator.AddListener("stoporder", self)
 		mediator.AddListener("enterarea", self)
 		mediator.AddListener("exitarea", self)
+		mediator.AddListener("addplayer", self)
 	
 		self.enemyId = None
 
