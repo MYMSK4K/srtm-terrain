@@ -546,17 +546,17 @@ def run():
 		pressed = pygame.key.get_pressed()
 
 		if pressed[K_LEFT]:
-			camPos[0] -= 1. * time_passed_seconds * camAlt
+			camPos[0] -= 1. * time_passed_seconds * camPos[2]
 		if pressed[K_RIGHT]:
-			camPos[0] += 1. * time_passed_seconds * camAlt
+			camPos[0] += 1. * time_passed_seconds * camPos[2]
 		if pressed[K_UP]:
-			camPos[1] += 1. * time_passed_seconds * camAlt
+			camPos[1] += 1. * time_passed_seconds * camPos[2]
 		if pressed[K_DOWN]:
-			camPos[1] -= 1. * time_passed_seconds * camAlt
+			camPos[1] -= 1. * time_passed_seconds * camPos[2]
 		if pressed[K_a]:
-			camPos[2] -= 10. * time_passed_seconds
+			camPos[2] -= 20. * time_passed_seconds
 		if pressed[K_z]:
-			camPos[2] += 10. * time_passed_seconds
+			camPos[2] += 20. * time_passed_seconds
 		
 		gameObjects.Update(time_passed_seconds)
 
