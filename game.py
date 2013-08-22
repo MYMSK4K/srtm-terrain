@@ -1,7 +1,7 @@
 
 SCREEN_SIZE = (800, 600)
 
-import math, uuid, events
+import math, uuid, events, script
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -253,11 +253,15 @@ class GameObjects(events.EventCallback):
 		mediator.AddListener("stoporder", self)
 		mediator.AddListener("enterarea", self)
 		mediator.AddListener("exitarea", self)
+		mediator.AddListener("addunit", self)
+		mediator.AddListener("addarea", self)
+		mediator.AddListener("setmission", self)
 
 		self.objs = {}
 		self.newObjs = [] #Add these to main object dict after iteration
 		self.objsToRemove = [] #Remove these after current iteration
 		self.areaContents = {}
+		self.verbose = 0
 
 	def Add(self, obj):
 		self.objs[obj.objId] = obj
@@ -269,7 +273,7 @@ class GameObjects(events.EventCallback):
 			return self.objs[event.objId].pos
 
 		if event.type == "fireshell":
-			print event.type
+			if self.verbose: print event.type
 
 			shot = Shell(self.mediator)
 			shot.targetPos = event.targetPos
@@ -280,7 +284,7 @@ class GameObjects(events.EventCallback):
 			self.newObjs.append(shot)
 
 		if event.type == "detonate":
-			print event.type
+			if self.verbose: print event.type
 			self.objsToRemove.append(event.objId)
 
 			#Check if it hit
@@ -311,7 +315,7 @@ class GameObjects(events.EventCallback):
 				self.mediator.Send(hitEvent)
 
 		if event.type == "targetdestroyed":
-			print event.type
+			if self.verbose: print event.type
 
 			#Stop attacking targets that are dead
 			for objId in self.objs:
@@ -320,25 +324,43 @@ class GameObjects(events.EventCallback):
 					obj.Attack(None)
 
 		if event.type == "targethit":
-			print event.type
+			if self.verbose: print event.type
 
 		if event.type == "shellmiss":
-			print event.type
+			if self.verbose: print event.type
 
 		if event.type == "attackorder":
-			print event.type
+			if self.verbose: print event.type
 
 		if event.type == "moveorder":
-			print event.type
+			if self.verbose: print event.type
 
 		if event.type == "stoporder":
-			print event.type
+			if self.verbose: print event.type
 
 		if event.type == "enterarea":
-			print event.type
+			if self.verbose: print event.type
 
 		if event.type == "exitarea":
-			print event.type
+			if self.verbose: print event.type
+
+		if event.type == "addunit":			
+			if self.verbose: print event.type
+			enemy = Person(self.mediator)
+			enemy.faction = event.faction
+			enemy.pos = np.array(event.pos)
+			self.newObjs.append(enemy)
+			return enemy.objId
+
+		if event.type == "addarea":
+			if self.verbose: print event.type
+			area = AreaObjective(self.mediator)
+			area.pos = np.array(event.pos)
+			self.newObjs.append(area)
+			return area.objId
+
+		if event.type == "setmission":
+			print event.text
 
 	def Update(self, timeElapsed):
 		for objId in self.objs:
@@ -476,19 +498,16 @@ def run():
 
 	eventMediator = events.EventMediator()
 
+	scriptObj = script.Script(eventMediator)
 	gameObjects = GameObjects(eventMediator)
+
 	player = Person(eventMediator)
 	player.player = 1
 	player.faction = 1
 	gameObjects.Add(player)
-	enemy = Person(eventMediator)
-	enemy.faction = 2
-	enemy.pos = np.array((20., 10.))
-	gameObjects.Add(enemy)
 
-	area = AreaObjective(eventMediator)
-	area.pos = np.array((-15., 20.))
-	gameObjects.Add(area)
+	startEvent = events.Event("gamestart")
+	eventMediator.Send(startEvent)
 
 	while True:
 		
