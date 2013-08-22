@@ -39,6 +39,7 @@ class Script(events.EventCallback):
 			self.mediator.Send(event)
 
 		if event.type == "targetdestroyed":
+			print "by playerId", event.playerId
 			if self.enemyId == event.objId:
 				au = events.Event("addunit")
 				au.pos = (random.random() * 30. - 15., random.random() * 30. - 15.)

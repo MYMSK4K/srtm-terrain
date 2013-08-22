@@ -146,6 +146,7 @@ class Person(GameObj):
 					fireEvent.targetPos = getEnemyPos.copy()
 					fireEvent.targetId = self.attackOrder
 					fireEvent.firerId = self.objId
+					fireEvent.playerId = self.playerId
 					fireEvent.firerPos = self.pos.copy()
 					fireEvent.speed = 100.
 					self.mediator.Send(fireEvent)
@@ -198,6 +199,7 @@ class Shell(GameObj):
 			detonateEvent.pos = self.pos.copy()
 			detonateEvent.objId = self.objId
 			detonateEvent.firerId = self.firerId
+			detonateEvent.playerId = self.playerId
 			self.mediator.Send(detonateEvent)
 		else:
 			self.pos += direction * timeElapsed * self.speed
@@ -280,6 +282,7 @@ class GameObjects(events.EventCallback):
 			shot.targetPos = event.targetPos
 			shot.targetId = event.targetId
 			shot.firerId = event.firerId
+			shot.playerId = event.playerId
 			shot.pos = event.firerPos
 			shot.speed = event.speed
 			self.newObjs.append(shot)
@@ -308,6 +311,7 @@ class GameObjects(events.EventCallback):
 						destroyEvent = events.Event("targetdestroyed")
 						destroyEvent.objId = obj.objId
 						destroyEvent.firerId = event.firerId
+						destroyEvent.playerId = event.playerId
 						self.mediator.Send(destroyEvent)
 			
 			if hitCount == 0:
