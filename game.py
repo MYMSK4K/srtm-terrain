@@ -262,6 +262,7 @@ class GameObjects(events.EventCallback):
 		self.objsToRemove = [] #Remove these after current iteration
 		self.areaContents = {}
 		self.verbose = 0
+		self.playerId = None
 
 	def Add(self, obj):
 		self.objs[obj.objId] = obj
@@ -443,7 +444,7 @@ class GameObjects(events.EventCallback):
 		if button == 1:
 			for objId in self.objs:
 				obj = self.objs[objId]
-				if obj.player != 1: continue
+				if obj.player != self.playerId: continue
 				obj.MoveTo(worldPos)
 
 				moveOrder = events.Event("moveorder")
@@ -458,7 +459,7 @@ class GameObjects(events.EventCallback):
 			if bestUuid is not None and bestDist < clickTolerance:
 				for objId in self.objs:
 					obj = self.objs[objId]
-					if obj.player != 1: continue
+					if obj.player != self.playerId: continue
 					obj.Attack(bestUuid)
 
 					if bestUuid is not None:
@@ -470,7 +471,7 @@ class GameObjects(events.EventCallback):
 			if bestUuid is None or bestDist >= clickTolerance:
 				for objId in self.objs:
 					obj = self.objs[objId]
-					if obj.player != 1: continue
+					if obj.player != self.playerId: continue
 					#Stop attack
 					obj.Attack(None)
 
@@ -502,9 +503,10 @@ def run():
 	gameObjects = GameObjects(eventMediator)
 
 	player = Person(eventMediator)
-	player.player = 1
+	player.player = uuid.uuid4()
 	player.faction = 1
 	gameObjects.Add(player)
+	gameObjects.playerId = player.player
 
 	startEvent = events.Event("gamestart")
 	eventMediator.Send(startEvent)
