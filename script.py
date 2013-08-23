@@ -26,7 +26,7 @@ class Script(events.EventCallback):
 		if event.type == "gamestart":
 
 			event = events.Event("addunit")
-			event.pos = (20., 10.)
+			event.pos = (53.93025, 27.3777)
 			event.faction = 2
 			self.enemyId = self.mediator.Send(event)[0]
 
@@ -35,7 +35,7 @@ class Script(events.EventCallback):
 			self.mediator.Send(au)
 
 			event = events.Event("addarea")
-			event.pos = (-15., 20.)
+			event.pos = (53.930185, 27.3782)
 			self.mediator.Send(event)
 
 		if event.type == "targetdestroyed":

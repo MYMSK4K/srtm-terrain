@@ -21,6 +21,7 @@ class GameObjects(events.EventCallback):
 		mediator.AddListener("addunit", self)
 		mediator.AddListener("addarea", self)
 		mediator.AddListener("setmission", self)
+		mediator.AddListener("drawObjects", self)
 
 		self.objs = {}
 		self.newObjs = [] #Add these to main object dict after iteration
@@ -130,9 +131,12 @@ class GameObjects(events.EventCallback):
 		if event.type == "setmission":
 			print event.text
 
-	def Update(self, timeElapsed, timeNow):
+		if event.type == "drawObjects":
+			self.Draw(event.proj)
+
+	def Update(self, timeElapsed, timeNow, proj):
 		for objId in self.objs:
-			self.objs[objId].Update(timeElapsed, timeNow)
+			self.objs[objId].Update(timeElapsed, timeNow, proj)
 
 		#Update list of objects with new items
 		for obj in self.newObjs:
@@ -186,9 +190,9 @@ class GameObjects(events.EventCallback):
 
 					contents.remove(objId)			
 
-	def Draw(self):
+	def Draw(self, proj):
 		for objId in self.objs:
-			self.objs[objId].Draw()
+			self.objs[objId].Draw(proj)
 
 	def ObjNearPos(self, pos, notFaction = None):
 		bestDist, bestUuid = None, None

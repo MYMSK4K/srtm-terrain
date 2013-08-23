@@ -12,9 +12,9 @@ class Terrain(events.EventCallback):
 		
 	def ProcessEvent(self, event):
 		if event.type == "drawTerrain":
-			self.Draw()
+			self.Draw(event.proj)
 
-	def Draw(self):
+	def Draw(self, proj):
 		for poly in self.kf.polygons:
 			for line in poly[1]:
 				#print line

@@ -13,10 +13,10 @@ class GameObj(object):
 		self.faction = 0
 		self.pos = np.array((0., 0.))
 
-	def Draw(self):
+	def Draw(self, proj):
 		pass
 
-	def Update(self, timeElapsed, timeNow):
+	def Update(self, timeElapsed, timeNow, proj):
 		pass
 
 	def GetHealth(self):
@@ -47,8 +47,9 @@ class Person(GameObj):
 		self.firePeriod = 1.
 		self.health = 1.
 		self.radius = 1.
+		self.glradius = 0.001* self.radius
 
-	def Draw(self):
+	def Draw(self, proj):
 		if self.faction == 0:
 			GL.glColor3f(1., 0., 0.)
 		if self.faction == 1:
@@ -59,18 +60,19 @@ class Person(GameObj):
 			GL.glColor3f(0.3, 0.3, 0.3)
 
 		GL.glPushMatrix()
-		GL.glTranslatef(self.pos[0], self.pos[1], 0.)
+
+		proj.TransformToLocalCoords(self.pos[0], self.pos[1], 0.)
 		
 		GL.glBegin(GL.GL_POLYGON)
 		for i in range(10):
-			GL.glVertex3f(self.radius * math.sin(i * 2. * math.pi / 10.), self.radius * math.cos(i * 2. * math.pi / 10.), 0.)
+			GL.glVertex3f(self.glradius * math.sin(i * 2. * math.pi / 10.), self.glradius * math.cos(i * 2. * math.pi / 10.), 0.)
 		GL.glEnd()
 
 		GL.glColor3f(0., 0., 0.)
 		GL.glBegin(GL.GL_POLYGON)
-		GL.glVertex3f(self.radius * math.sin(self.heading), self.radius * math.cos(self.heading), 0.)
-		GL.glVertex3f(0.1 * self.radius * math.sin(self.heading + math.pi / 2), 0.1 * self.radius * math.cos(self.heading + math.pi / 2), 0.)
-		GL.glVertex3f(0.1 * self.radius * math.sin(self.heading - math.pi / 2), 0.1 * self.radius * math.cos(self.heading - math.pi / 2), 0.)
+		GL.glVertex3f(self.glradius * math.sin(self.heading), self.glradius * math.cos(self.heading), 0.)
+		GL.glVertex3f(0.1 * self.glradius * math.sin(self.heading + math.pi / 2), 0.1 * self.glradius * math.cos(self.heading + math.pi / 2), 0.)
+		GL.glVertex3f(0.1 * self.glradius * math.sin(self.heading - math.pi / 2), 0.1 * self.glradius * math.cos(self.heading - math.pi / 2), 0.)
 		GL.glEnd()
 
 		GL.glPopMatrix()
@@ -83,7 +85,7 @@ class Person(GameObj):
 		self.attackOrder = uuid
 		self.moveOrder = None
 
-	def Update(self, timeElapsed, timeNow):
+	def Update(self, timeElapsed, timeNow, proj):
 		
 		if self.moveOrder is not None:
 			direction = np.array(self.moveOrder) - np.array(self.pos)
@@ -147,22 +149,23 @@ class Shell(GameObj):
 		self.firerPos = None
 		self.speed = 100.
 		self.radius = 0.05
+		self.glradius = 0.001* self.radius
 		self.mediator = mediator
 		self.attackOrder = None
 
-	def Draw(self):
+	def Draw(self, proj):
 		GL.glPushMatrix()
-		GL.glTranslatef(self.pos[0], self.pos[1], 0.)
+		proj.TransformToLocalCoords(self.pos[0], self.pos[1], 0.)
 		GL.glColor3f(0.5, 0.5, 0.5)
 
 		GL.glBegin(GL.GL_POLYGON)
 		for i in range(10):
-			GL.glVertex3f(self.radius * math.sin(i * 2. * math.pi / 10.), self.radius * math.cos(i * 2. * math.pi / 10.), 0.)
+			GL.glVertex3f(self.glradius * math.sin(i * 2. * math.pi / 10.), self.glradius * math.cos(i * 2. * math.pi / 10.), 0.)
 		GL.glEnd()
 
 		GL.glPopMatrix()
 
-	def Update(self, timeElapsed, timeNow):
+	def Update(self, timeElapsed, timeNow, proj):
 		direction = np.array(self.targetPos) - np.array(self.pos)
 		dirMag = np.linalg.norm(direction, ord=2)
 		if dirMag > 0.:
@@ -186,8 +189,9 @@ class AreaObjective(GameObj):
 	def __init__(self, mediator):
 		super(AreaObjective, self).__init__(mediator)
 		self.radius = 10.
+		self.glradius = 0.001* self.radius
 
-	def Draw(self):
+	def Draw(self, proj):
 
 		if self.faction == 0:
 			GL.glColor3f(1., 0., 0.)
@@ -197,16 +201,16 @@ class AreaObjective(GameObj):
 			GL.glColor3f(0., 0., 1.)
 
 		GL.glPushMatrix()
-		GL.glTranslatef(self.pos[0], self.pos[1], 0.)
+		proj.TransformToLocalCoords(self.pos[0], self.pos[1], 0.)
 
 		GL.glBegin(GL.GL_LINE_LOOP)
 		for i in range(50):
-			GL.glVertex3f(self.radius * math.sin(i * 2. * math.pi / 50.), self.radius * math.cos(i * 2. * math.pi / 50.), 0.)
+			GL.glVertex3f(self.glradius * math.sin(i * 2. * math.pi / 50.), self.glradius * math.cos(i * 2. * math.pi / 50.), 0.)
 		GL.glEnd()
 
 		GL.glPopMatrix()
 
-	def Update(self, timeElapsed, timeNow):
+	def Update(self, timeElapsed, timeNow, proj):
 		pass
 
 	def CollidesWithPoint(self, pos):
