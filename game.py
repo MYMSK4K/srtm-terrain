@@ -94,7 +94,7 @@ def run():
 	player = gameobjs.Person(eventMediator)
 	player.playerId = uuid.uuid4()
 	player.faction = 1
-	player.pos = camLatLon
+	player.pos = camLatLon[:]
 	gameObjects.Add(player)
 	gameObjects.playerId = player.playerId
 
@@ -132,13 +132,13 @@ def run():
 		pressed = pygame.key.get_pressed()
 
 		if pressed[K_LEFT]:
-			camLatLon[1] -= 0.1 * time_passed_seconds
+			camLatLon[1] -= 0.001 * time_passed_seconds
 		if pressed[K_RIGHT]:
-			camLatLon[1] += 0.1 * time_passed_seconds
+			camLatLon[1] += 0.001 * time_passed_seconds
 		if pressed[K_UP]:
-			camLatLon[0] += 0.1 * time_passed_seconds
+			camLatLon[0] += 0.001 * time_passed_seconds
 		if pressed[K_DOWN]:
-			camLatLon[0] -= 0.1 * time_passed_seconds
+			camLatLon[0] -= 0.001 * time_passed_seconds
 		if pressed[K_a]:
 			camAlt -= 100. * time_passed_seconds
 		if pressed[K_z]:
