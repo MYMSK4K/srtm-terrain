@@ -41,7 +41,7 @@ class Person(GameObj):
 		self.heading = 0. #Radians
 		self.moveOrder = None
 		self.attackOrder = None
-		self.speed = 5.
+		self.speed = 0.0001
 		self.attackRange = 5.
 		self.fireTime = None
 		self.firePeriod = 1.
@@ -78,7 +78,7 @@ class Person(GameObj):
 		GL.glPopMatrix()
 
 	def MoveTo(self, pos):
-		self.moveOrder = np.array(pos)
+		self.moveOrder = np.array(pos[:2])
 		self.attackOrder = None
 
 	def Attack(self, uuid):

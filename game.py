@@ -23,21 +23,29 @@ def resize(width, height):
 
 def init():
 	
-	glDisable(GL_DEPTH_TEST)
+	glEnable(GL_DEPTH_TEST)
+	glDepthFunc(GL_LEQUAL)
 	glClearColor(1.0, 1.0, 1.0, 0.0)
 	glEnable(GL_BLEND)
 
 class ProjFunc:
 	def __init__(self):
-		pass
+		self.radius = 6371.
 
 	def Proj(self, lat, lon, alt):
 
-		R = 6371. + alt / 1000.
+		R = self.radius + alt / 1000.
 		x = R * math.cos(lat) * math.cos(lon)
 		y = R * math.cos(lat) * math.sin(lon)
 		z = R * math.sin(lat)
 		return (x, y, z)
+
+	def UnProj(self, x, y, z):
+		R = np.linalg.norm([x,y,z], ord=2)
+		lat = math.asin(z / R)
+		lon = math.atan2(y, x)
+		alt = R - self.radius
+		return lat, lon, alt * 1000.
 
 	def TransformToLocalCoords(self, lat, lon, alt):
 		pos = self.Proj(math.radians(lat), math.radians(lon), alt)
@@ -116,18 +124,17 @@ def run():
 			if event.type == KEYUP and event.key == K_ESCAPE:
 				return
 			if event.type == MOUSEBUTTONDOWN:
-				worldPos = gluUnProject(event.pos[0], SCREEN_SIZE[1] - event.pos[1], 1.)
-				rayVec = np.array(worldPos) - np.array(camPos)
-				rayVecMag = np.linalg.norm(rayVec, ord=2)
-				if rayVecMag > 0.:
-					rayVec /= rayVecMag
+				#Convert from screen to world coordinates
+				glDepth = glReadPixels(event.pos[0], SCREEN_SIZE[1] - event.pos[1], 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT);
+				clickWorld = gluUnProject(event.pos[0], SCREEN_SIZE[1] - event.pos[1], glDepth)
+				
+				#Convert from world to lat lon
+				latLonR = proj.UnProj(*clickWorld)
+				clickLat = math.degrees(latLonR[0])
+				clickLon = math.degrees(latLonR[1])
 
-				#Scale ray based on altitude
-				scaleFac = -camPos[2] / rayVec[2]
-				clickWorld = scaleFac * rayVec + np.array(camPos)
-				#print "clickWorld", clickWorld
-
-				gameObjects.WorldClick((clickWorld[0], clickWorld[1]), event.button)
+				#Emit event
+				gameObjects.WorldClick((clickLat, clickLon, latLonR[2]), event.button)
 
 		pressed = pygame.key.get_pressed()
 
@@ -159,6 +166,7 @@ def run():
 						
 		glMatrixMode(GL_MODELVIEW)
 		glLoadIdentity()
+
 		gluLookAt(camPos[0], camPos[1], camPos[2], # look from camera XYZ
 			camTarg[0], camTarg[1], camTarg[2], # look at the origin
 			camUp[0], camUp[1], camUp[2]); # up
