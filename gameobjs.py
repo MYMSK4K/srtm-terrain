@@ -129,7 +129,7 @@ class Person(GameObj):
 					fireEvent.firerId = self.objId
 					fireEvent.playerId = self.playerId
 					fireEvent.firerPos = self.pos.copy()
-					fireEvent.speed = 100.
+					fireEvent.speed = 10.
 					self.mediator.Send(fireEvent)
 
 	def CollidesWithPoint(self, pos, proj):
@@ -152,7 +152,7 @@ class Shell(GameObj):
 		self.targetId = None
 		self.firerId = None
 		self.firerPos = None
-		self.speed = 100.
+		self.speed = 10.
 		self.radius = 0.05
 		self.mediator = mediator
 		self.attackOrder = None
@@ -172,13 +172,11 @@ class Shell(GameObj):
 		GL.glPopMatrix()
 
 	def Update(self, timeElapsed, timeNow, proj):
-		direction = np.array(self.targetPos) - np.array(self.pos)
-		dirMag = np.linalg.norm(direction, ord=2)
-		if dirMag > 0.:
-			direction /= dirMag
+		dirMag = proj.DistanceBetween(self.pos[0], self.pos[1], self.pos[2], 
+			self.targetPos[0], self.targetPos[1], self.targetPos[2])
 
 		if dirMag < timeElapsed * self.speed:
-			self.pos = self.targetPos
+			self.SetPos(self.targetPos.copy())
 			detonateEvent = events.Event("detonate")
 			detonateEvent.pos = self.pos.copy()
 			detonateEvent.objId = self.objId
@@ -187,7 +185,7 @@ class Shell(GameObj):
 			detonateEvent.proj = proj
 			self.mediator.Send(detonateEvent)
 		else:
-			self.pos += direction * timeElapsed * self.speed
+			self.SetPos(proj.OffsetTowardsPoint(self.pos, self.targetPos, self.speed * timeElapsed))
 
 	def GetHealth(self):
 		return 1.
