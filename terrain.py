@@ -31,9 +31,13 @@ class Terrain(events.EventCallback):
 		
 		GL.glEnd()
 
-
-
+		GL.glColor3f(0.0, 0.0, 0.5)
 		for poly in self.kf.polygons:
+			attribs = poly[0]
+			if "building" not in attribs: continue
+			GL.glBegin(GL.GL_POLYGON)
 			for line in poly[1]:
-				#print line
-				pass
+				for pt in line:
+					GL.glVertex3f(*proj.Proj(math.radians(pt[1]),math.radians(pt[0]),0.))
+	
+			GL.glEnd()
