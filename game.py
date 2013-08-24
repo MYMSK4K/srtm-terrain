@@ -31,6 +31,8 @@ def init():
 class ProjFunc:
 	def __init__(self):
 		self.radius = 6371.
+		self.glOrigin = (0., 0., 0.)
+		self.glOrigin = self.Proj(math.radians(54.0), math.radians(27.0), 0.)
 
 	def Proj(self, lat, lon, alt):
 
@@ -38,12 +40,14 @@ class ProjFunc:
 		x = R * math.cos(lat) * math.cos(lon)
 		y = R * math.cos(lat) * math.sin(lon)
 		z = R * math.sin(lat)
-		return (x, y, z)
+		out = np.array((x,y,z)) - self.glOrigin
+		return out
 
 	def UnProj(self, x, y, z):
-		R = np.linalg.norm([x,y,z], ord=2)
-		lat = math.asin(z / R)
-		lon = math.atan2(y, x)
+		pos = np.array([x,y,z])+self.glOrigin
+		R = np.linalg.norm(pos, ord=2)
+		lat = math.asin(pos[2] / R)
+		lon = math.atan2(pos[1], pos[0])
 		alt = R - self.radius
 		return lat, lon, alt * 1000.
 
@@ -127,11 +131,13 @@ def run():
 				#Convert from screen to world coordinates
 				glDepth = glReadPixels(event.pos[0], SCREEN_SIZE[1] - event.pos[1], 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT);
 				clickWorld = gluUnProject(event.pos[0], SCREEN_SIZE[1] - event.pos[1], glDepth)
-				
+				print clickWorld				
+
 				#Convert from world to lat lon
 				latLonR = proj.UnProj(*clickWorld)
 				clickLat = math.degrees(latLonR[0])
 				clickLon = math.degrees(latLonR[1])
+				print clickLat, clickLon, latLonR[2]
 
 				#Emit event
 				gameObjects.WorldClick((clickLat, clickLon, latLonR[2]), event.button)
