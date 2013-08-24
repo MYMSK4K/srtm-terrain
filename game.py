@@ -166,17 +166,17 @@ def run():
 		pressed = pygame.key.get_pressed()
 
 		if pressed[K_LEFT]:
-			camLatLon[1] -= 0.001 * time_passed_seconds
+			camLatLon[1] -= 0.00001 * time_passed_seconds * camAlt
 		if pressed[K_RIGHT]:
-			camLatLon[1] += 0.001 * time_passed_seconds
+			camLatLon[1] += 0.00001 * time_passed_seconds * camAlt
 		if pressed[K_UP]:
-			camLatLon[0] += 0.001 * time_passed_seconds
+			camLatLon[0] += 0.00001 * time_passed_seconds * camAlt
 		if pressed[K_DOWN]:
-			camLatLon[0] -= 0.001 * time_passed_seconds
+			camLatLon[0] -= 0.00001 * time_passed_seconds * camAlt
 		if pressed[K_a]:
-			camAlt -= 100. * time_passed_seconds
+			camAlt /= pow(2.0,time_passed_seconds)
 		if pressed[K_z]:
-			camAlt += 100. * time_passed_seconds
+			camAlt *= pow(2.0,time_passed_seconds)
 		
 		#print camLatLon, camAlt
 		camPos = proj.Proj(math.radians(camLatLon[0]), math.radians(camLatLon[1]), camAlt)
