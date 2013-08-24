@@ -31,12 +31,13 @@ def init():
 class ProjFunc:
 	def __init__(self):
 		self.radius = 6371.
+		self.scale = 1000.
 		self.glOrigin = (0., 0., 0.)
 		self.glOrigin = self.Proj(math.radians(54.0), math.radians(27.0), 0.)
 
 	def Proj(self, lat, lon, alt):
 
-		R = self.radius + alt / 1000.
+		R = self.radius + alt / self.scale
 		x = R * math.cos(lat) * math.cos(lon)
 		y = R * math.cos(lat) * math.sin(lon)
 		z = R * math.sin(lat)
@@ -49,11 +50,11 @@ class ProjFunc:
 		lat = math.asin(pos[2] / R)
 		lon = math.atan2(pos[1], pos[0])
 		alt = R - self.radius
-		return lat, lon, alt * 1000.
+		return lat, lon, alt * self.scale
 
 	def TransformToLocalCoords(self, lat, lon, alt):
 		pos = self.Proj(math.radians(lat), math.radians(lon), alt)
-		posUp = self.Proj(math.radians(lat), math.radians(lon), alt + 1000.)
+		posUp = self.Proj(math.radians(lat), math.radians(lon), alt + 1. * self.scale)
 		posNth = self.Proj(math.radians(lat+0.5), math.radians(lon), alt)
 		posEst = self.Proj(math.radians(lat), math.radians(lon+0.5), alt)
 
@@ -76,6 +77,26 @@ class ProjFunc:
 
 		glTranslated(*pos)
 		glMultMatrixd(m)
+
+	def DistanceBetween(self, lat1, lon1, alt1, lat2, lon2, alt2):
+		pt1 = self.Proj(math.radians(lat1), math.radians(lon1), alt1)
+		pt2 = self.Proj(math.radians(lat2), math.radians(lon2), alt2)
+
+		return np.linalg.norm(pt1 - pt2, ord=2) * self.scale
+
+	def ScaleDistance(self, dist):
+		return dist / self.scale
+
+	def OffsetTowardsPoint(self, oriPt, towardPt, dist):
+		pt1 = self.Proj(math.radians(oriPt[0]), math.radians(oriPt[1]), oriPt[2])
+		pt2 = self.Proj(math.radians(towardPt[0]), math.radians(towardPt[1]), towardPt[2])
+		direction = pt2 - pt1
+		mag = np.linalg.norm(direction, ord=2)
+		if mag > 0.:
+			direction /= mag
+		offsetCart = direction * dist / self.scale + pt1
+		outRad = self.UnProj(offsetCart[0], offsetCart[1], offsetCart[2])
+		return np.array((math.degrees(outRad[0]), math.degrees(outRad[1]), outRad[2]))
 
 ### Main Program
 
@@ -106,7 +127,7 @@ def run():
 	player = gameobjs.Person(eventMediator)
 	player.playerId = uuid.uuid4()
 	player.faction = 1
-	player.pos = camLatLon[:]
+	player.SetPos((camLatLon[0], camLatLon[1], 0.))
 	gameObjects.Add(player)
 	gameObjects.playerId = player.playerId
 
@@ -140,7 +161,7 @@ def run():
 				print clickLat, clickLon, latLonR[2]
 
 				#Emit event
-				gameObjects.WorldClick((clickLat, clickLon, latLonR[2]), event.button)
+				gameObjects.WorldClick((clickLat, clickLon, latLonR[2]), event.button, proj)
 
 		pressed = pygame.key.get_pressed()
 

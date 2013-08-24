@@ -11,7 +11,7 @@ class GameObj(object):
 		self.objId = uuid.uuid4()
 		self.playerId = None
 		self.faction = 0
-		self.pos = np.array((0., 0.))
+		self.pos = np.array((0., 0., 0.))
 
 	def Draw(self, proj):
 		pass
@@ -22,7 +22,7 @@ class GameObj(object):
 	def GetHealth(self):
 		return None
 
-	def CollidesWithPoint(self, pos):
+	def CollidesWithPoint(self, pos, proj):
 		return False
 
 	def GetAttackTarget(self):
@@ -34,6 +34,10 @@ class GameObj(object):
 	def Attack(self, uuid):
 		pass
 
+	def SetPos(self, posIn):
+		assert(len(posIn)==3)
+		self.pos = np.array(posIn)
+
 class Person(GameObj):
 	def __init__(self, mediator):
 		super(Person, self).__init__(mediator)
@@ -41,13 +45,12 @@ class Person(GameObj):
 		self.heading = 0. #Radians
 		self.moveOrder = None
 		self.attackOrder = None
-		self.speed = 0.0001
+		self.speed = 5.
 		self.attackRange = 5.
 		self.fireTime = None
 		self.firePeriod = 1.
 		self.health = 1.
 		self.radius = 1.
-		self.glradius = 0.001* self.radius
 
 	def Draw(self, proj):
 		if self.faction == 0:
@@ -59,26 +62,27 @@ class Person(GameObj):
 		if self.health == 0.:
 			GL.glColor3f(0.3, 0.3, 0.3)
 
+		glRadius = proj.ScaleDistance(self.radius)
 		GL.glPushMatrix()
 
 		proj.TransformToLocalCoords(self.pos[0], self.pos[1], 0.)
 		
 		GL.glBegin(GL.GL_POLYGON)
 		for i in range(10):
-			GL.glVertex3f(self.glradius * math.sin(i * 2. * math.pi / 10.), self.glradius * math.cos(i * 2. * math.pi / 10.), 0.)
+			GL.glVertex3f(glRadius * math.sin(i * 2. * math.pi / 10.), glRadius * math.cos(i * 2. * math.pi / 10.), 0.)
 		GL.glEnd()
 
 		GL.glColor3f(0., 0., 0.)
 		GL.glBegin(GL.GL_POLYGON)
-		GL.glVertex3f(self.glradius * math.sin(self.heading), self.glradius * math.cos(self.heading), 0.)
-		GL.glVertex3f(0.1 * self.glradius * math.sin(self.heading + math.pi / 2), 0.1 * self.glradius * math.cos(self.heading + math.pi / 2), 0.)
-		GL.glVertex3f(0.1 * self.glradius * math.sin(self.heading - math.pi / 2), 0.1 * self.glradius * math.cos(self.heading - math.pi / 2), 0.)
+		GL.glVertex3f(glRadius * math.sin(self.heading), glRadius * math.cos(self.heading), 0.)
+		GL.glVertex3f(0.1 * glRadius * math.sin(self.heading + math.pi / 2), 0.1 * glRadius * math.cos(self.heading + math.pi / 2), 0.)
+		GL.glVertex3f(0.1 * glRadius * math.sin(self.heading - math.pi / 2), 0.1 * glRadius * math.cos(self.heading - math.pi / 2), 0.)
 		GL.glEnd()
 
 		GL.glPopMatrix()
 
 	def MoveTo(self, pos):
-		self.moveOrder = np.array(pos[:2])
+		self.moveOrder = np.array(pos)
 		self.attackOrder = None
 
 	def Attack(self, uuid):
@@ -87,31 +91,31 @@ class Person(GameObj):
 
 	def Update(self, timeElapsed, timeNow, proj):
 		
-		if self.moveOrder is not None:
-			direction = np.array(self.moveOrder) - np.array(self.pos)
-			dirMag = np.linalg.norm(direction, ord=2)
-			if dirMag > 0.:
-				direction /= dirMag
+		moveTowards = self.moveOrder
 
-			if dirMag < timeElapsed * self.speed:
-				self.pos = self.moveOrder
-				self.moveOrder = None
-			else:
-				self.pos += direction * timeElapsed * self.speed
+		if moveTowards is not None:
+			dirMag = proj.DistanceBetween(self.pos[0], self.pos[1], self.pos[2], 
+				moveTowards[0], moveTowards[1], moveTowards[2])
 
 		if self.attackOrder is not None:
 			event = events.Event("getpos")
 			event.objId = self.attackOrder
 			getEnemyPosRet = self.mediator.Send(event)
 			getEnemyPos = getEnemyPosRet[0]
-			direction = getEnemyPos - np.array(self.pos)
-			dirMag = np.linalg.norm(direction, ord=2)
-			if dirMag > 0.:
-				direction /= dirMag
+			dirMag = proj.DistanceBetween(self.pos[0], self.pos[1], self.pos[2], 
+				getEnemyPos[0], getEnemyPos[1], getEnemyPos[2])
 
 			if dirMag > self.attackRange * 0.95:
-				self.pos += direction * timeElapsed * self.speed
+				moveTowards = getEnemyPos
 
+		if moveTowards is not None:
+			if dirMag < timeElapsed * self.speed:
+				self.SetPos(self.moveOrder.copy())
+				self.moveOrder = None
+			else:
+				self.SetPos(proj.OffsetTowardsPoint(self.pos, moveTowards, self.speed * timeElapsed))
+
+		if self.attackOrder is not None:			
 			if dirMag <= self.attackRange:
 				#Check if we can fire
 				durationSinceFiring = None
@@ -128,9 +132,10 @@ class Person(GameObj):
 					fireEvent.speed = 100.
 					self.mediator.Send(fireEvent)
 
-	def CollidesWithPoint(self, pos):
-		direction = np.array(pos) - self.pos
-		dist = np.linalg.norm(direction, ord=2)
+	def CollidesWithPoint(self, pos, proj):
+		assert len(self.pos) == 3
+		dist = proj.DistanceBetween(pos[0], pos[1], pos[2], 
+			self.pos[0], self.pos[1], self.pos[2])
 		return dist < self.radius
 
 	def GetHealth(self):
@@ -149,18 +154,19 @@ class Shell(GameObj):
 		self.firerPos = None
 		self.speed = 100.
 		self.radius = 0.05
-		self.glradius = 0.001* self.radius
 		self.mediator = mediator
 		self.attackOrder = None
 
 	def Draw(self, proj):
+
+		glRadius = proj.ScaleDistance(self.radius)
 		GL.glPushMatrix()
 		proj.TransformToLocalCoords(self.pos[0], self.pos[1], 0.)
 		GL.glColor3f(0.5, 0.5, 0.5)
 
 		GL.glBegin(GL.GL_POLYGON)
 		for i in range(10):
-			GL.glVertex3f(self.glradius * math.sin(i * 2. * math.pi / 10.), self.glradius * math.cos(i * 2. * math.pi / 10.), 0.)
+			GL.glVertex3f(glRadius * math.sin(i * 2. * math.pi / 10.), glRadius * math.cos(i * 2. * math.pi / 10.), 0.)
 		GL.glEnd()
 
 		GL.glPopMatrix()
@@ -178,6 +184,7 @@ class Shell(GameObj):
 			detonateEvent.objId = self.objId
 			detonateEvent.firerId = self.firerId
 			detonateEvent.playerId = self.playerId
+			detonateEvent.proj = proj
 			self.mediator.Send(detonateEvent)
 		else:
 			self.pos += direction * timeElapsed * self.speed
@@ -189,9 +196,9 @@ class AreaObjective(GameObj):
 	def __init__(self, mediator):
 		super(AreaObjective, self).__init__(mediator)
 		self.radius = 10.
-		self.glradius = 0.001* self.radius
 
 	def Draw(self, proj):
+		glRadius = proj.ScaleDistance(self.radius)
 
 		if self.faction == 0:
 			GL.glColor3f(1., 0., 0.)
@@ -205,7 +212,7 @@ class AreaObjective(GameObj):
 
 		GL.glBegin(GL.GL_LINE_LOOP)
 		for i in range(50):
-			GL.glVertex3f(self.glradius * math.sin(i * 2. * math.pi / 50.), self.glradius * math.cos(i * 2. * math.pi / 50.), 0.)
+			GL.glVertex3f(glRadius * math.sin(i * 2. * math.pi / 50.), glRadius * math.cos(i * 2. * math.pi / 50.), 0.)
 		GL.glEnd()
 
 		GL.glPopMatrix()
@@ -213,8 +220,8 @@ class AreaObjective(GameObj):
 	def Update(self, timeElapsed, timeNow, proj):
 		pass
 
-	def CollidesWithPoint(self, pos):
-		direction = np.array(pos) - self.pos
-		dist = np.linalg.norm(direction, ord=2)
+	def CollidesWithPoint(self, pos, proj):
+		dist = proj.DistanceBetween(pos[0], pos[1], pos[2], 
+			self.pos[0], self.pos[1], self.pos[2])
 		return dist < self.radius
 

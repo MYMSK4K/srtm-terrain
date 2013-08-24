@@ -1,5 +1,5 @@
 
-import events, gameobjs
+import events, gameobjs, math
 import numpy as np
 
 ###Object Manager
@@ -47,7 +47,7 @@ class GameObjects(events.EventCallback):
 			shot.targetId = event.targetId
 			shot.firerId = event.firerId
 			shot.playerId = event.playerId
-			shot.pos = event.firerPos
+			shot.SetPos(event.firerPos)
 			shot.speed = event.speed
 			self.newObjs.append(shot)
 
@@ -59,7 +59,7 @@ class GameObjects(events.EventCallback):
 			hitCount = 0
 			for objId in self.objs:
 				obj = self.objs[objId]
-				hit = obj.CollidesWithPoint(event.pos)
+				hit = obj.CollidesWithPoint((event.pos[0], event.pos[1], 0.), event.proj)
 
 				if hit and obj.health > 0.:
 					hitCount += 1
@@ -117,14 +117,14 @@ class GameObjects(events.EventCallback):
 			if self.verbose: print event.type
 			enemy = gameobjs.Person(self.mediator)
 			enemy.faction = event.faction
-			enemy.pos = np.array(event.pos)
+			enemy.SetPos(np.array((event.pos[0], event.pos[1], 0.)))
 			self.newObjs.append(enemy)
 			return enemy.objId
 
 		if event.type == "addarea":
 			if self.verbose: print event.type
 			area = gameobjs.AreaObjective(self.mediator)
-			area.pos = np.array(event.pos)
+			area.SetPos(np.array((event.pos[0], event.pos[1], 0.)))
 			self.newObjs.append(area)
 			return area.objId
 
@@ -173,7 +173,7 @@ class GameObjects(events.EventCallback):
 			for objId in self.objs:
 				obj = self.objs[objId]
 				if isinstance(obj, gameobjs.AreaObjective): continue
-				contains = area.CollidesWithPoint(obj.pos)
+				contains = area.CollidesWithPoint((obj.pos[0], obj.pos[1], 0.), proj)
 				if contains and objId not in contents:
 					areaEvent = events.Event("enterarea")
 					areaEvent.objId = objId
@@ -194,7 +194,7 @@ class GameObjects(events.EventCallback):
 		for objId in self.objs:
 			self.objs[objId].Draw(proj)
 
-	def ObjNearPos(self, pos, notFaction = None):
+	def ObjNearPos(self, pos, proj, notFaction = None):
 		bestDist, bestUuid = None, None
 		pos = np.array(pos)
 		for objId in self.objs:
@@ -203,15 +203,15 @@ class GameObjects(events.EventCallback):
 			health = obj.GetHealth()
 			if health is None: continue
 			if health == 0.: continue #Ignore dead targets
-			direction = obj.pos - pos
-			mag = np.linalg.norm(direction, ord=2)
+			mag = proj.DistanceBetween(math.radians(obj.pos[0]), math.radians(obj.pos[1]), 0., 
+				math.radians(pos[0]), math.radians(pos[1]), 0.)
 			if bestDist is None or mag < bestDist:
 				bestDist = mag
 				bestUuid = obj.objId
 
 		return bestUuid, bestDist
 
-	def WorldClick(self, worldPos, button):
+	def WorldClick(self, worldPos, button, proj):
 		if button == 1:
 			for objId in self.objs:
 				obj = self.objs[objId]
@@ -220,12 +220,13 @@ class GameObjects(events.EventCallback):
 
 				moveOrder = events.Event("moveorder")
 				moveOrder.objId = obj.objId
-				moveOrder.pos = worldPos
+				moveOrder.pos = (worldPos[0], worldPos[1], 0.)
 				self.mediator.Send(moveOrder)
 
 		if button == 3:
-			bestUuid, bestDist = self.ObjNearPos(worldPos, 1)
+			bestUuid, bestDist = self.ObjNearPos(worldPos, proj, 1)
 			clickTolerance = 5.
+			print bestUuid, bestDist
 
 			if bestUuid is not None and bestDist < clickTolerance:
 				for objId in self.objs:
