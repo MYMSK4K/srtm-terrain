@@ -203,8 +203,8 @@ class GameObjects(events.EventCallback):
 			health = obj.GetHealth()
 			if health is None: continue
 			if health == 0.: continue #Ignore dead targets
-			mag = proj.DistanceBetween(math.radians(obj.pos[0]), math.radians(obj.pos[1]), 0., 
-				math.radians(pos[0]), math.radians(pos[1]), 0.)
+			mag = proj.DistanceBetween(obj.pos[0], obj.pos[1], 0., 
+				pos[0], pos[1], 0.)
 			if bestDist is None or mag < bestDist:
 				bestDist = mag
 				bestUuid = obj.objId
