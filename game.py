@@ -88,7 +88,6 @@ class ProjFunc:
 		return dist / self.scale
 
 	def OffsetTowardsPoint(self, oriPt, towardPt, dist):
-		print dist
 		pt1 = self.Proj(math.radians(oriPt[0]), math.radians(oriPt[1]), oriPt[2])
 		pt2 = self.Proj(math.radians(towardPt[0]), math.radians(towardPt[1]), towardPt[2])
 		direction = pt2 - pt1
