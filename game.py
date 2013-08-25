@@ -55,23 +55,19 @@ class ProjFunc:
 	def TransformToLocalCoords(self, lat, lon, alt):
 		pos = self.Proj(math.radians(lat), math.radians(lon), alt)
 		posUp = self.Proj(math.radians(lat), math.radians(lon), alt + 1. * self.scale)
-		posNth = self.Proj(math.radians(lat+0.5), math.radians(lon), alt)
-		posEst = self.Proj(math.radians(lat), math.radians(lon+0.5), alt)
+		posEst = self.Proj(math.radians(lat), math.radians(lon+0.005), alt)
 
 		up = np.array(posUp) - np.array(pos)
 		upMag = np.linalg.norm(up, ord=2)
 		if upMag > 0.:
 			up /= upMag
 
-		nth = np.array(posNth) - np.array(pos)
-		nthMag = np.linalg.norm(nth, ord=2)
-		if nthMag > 0.:
-			nth /= nthMag
-
 		est = np.array(posEst) - np.array(pos)
 		estMag = np.linalg.norm(est, ord=2)
 		if estMag > 0.:
 			est /= estMag
+
+		nth = np.cross(up, est)
 
 		m = np.concatenate((est, [0.], nth, [0.], up, [0., 0., 0., 0., 1.]))
 
