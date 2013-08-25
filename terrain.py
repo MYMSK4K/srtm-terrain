@@ -6,6 +6,8 @@ import scipy.misc
 
 class TerrainTexture(object):
 	def __init__(self, heightMap, bbox):
+		self.dl = None
+
 		heightMapRes = scipy.misc.imresize(heightMap, (1024, 1024), 'bilinear', "L")
 		heightMapRes /= 2.
 		heightMapRes += 128.
@@ -27,12 +29,15 @@ class TerrainTexture(object):
 		y = (lat - self.bbox[1]) / self.latRange
 		return x, y
 	
-	def Draw(self, proj):
+	def GenDisplayList(self, proj):
+		self.dl = GL.glGenLists(1)
+		GL.glNewList(self.dl, GL.GL_COMPILE)
+
 		GL.glEnable(GL.GL_TEXTURE_2D)
 		GL.glBindTexture(GL.GL_TEXTURE_2D, self.num)
 		GL.glColor3f(0.98, 0.96, 0.95)
 
-		res = 2
+		res = 10
 		for x in range(res):
 			for y in range(res):
 
@@ -57,6 +62,14 @@ class TerrainTexture(object):
 				GL.glVertex3f(*proj.Proj(bboxR[1],bboxR[2],0.))
 		
 				GL.glEnd()
+
+		GL.glEndList()	
+
+	def Draw(self, proj):
+		if self.dl is None:
+			self.GenDisplayList(proj)
+		GL.glCallList(self.dl)
+		
 
 class Terrain(events.EventCallback):
 	def __init__(self, mediator):
