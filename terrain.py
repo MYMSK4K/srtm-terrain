@@ -83,6 +83,20 @@ class Terrain(events.EventCallback):
 		self.heightTex.Draw(proj)
 		self.heightTex2.Draw(proj)
 
+
+		#Rivers and streams
+		GL.glColor3f(0.0, 0.0, 0.9)
+		for line in self.kf.lineStrings:
+			attribs = line[0]
+			if "waterway" not in attribs: continue
+			#if attribs["waterway"] != "river" and  attribs["waterway"] != "stream": continue
+			GL.glBegin(GL.GL_LINE_STRIP)
+			for pt in line[1]:
+				GL.glVertex3f(*proj.Proj(math.radians(pt[1]),math.radians(pt[0]),0.))
+			GL.glEnd()
+
+
+		#Buildings
 		GL.glColor3f(0.0, 0.0, 0.5)
 		for poly in self.kf.polygons:
 			attribs = poly[0]
@@ -90,8 +104,7 @@ class Terrain(events.EventCallback):
 			GL.glBegin(GL.GL_POLYGON)
 			for line in poly[1]:
 				for pt in line:
-					GL.glVertex3f(*proj.Proj(math.radians(pt[1]),math.radians(pt[0]),0.))
-	
+					GL.glVertex3f(*proj.Proj(math.radians(pt[1]),math.radians(pt[0]),0.))	
 			GL.glEnd()
 
 		GL.glDisable(GL.GL_TEXTURE_2D)
