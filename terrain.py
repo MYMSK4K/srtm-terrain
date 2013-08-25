@@ -26,6 +26,37 @@ class TerrainTexture(object):
 		x = (lon - self.bbox[0]) / self.lonRange
 		y = (lat - self.bbox[1]) / self.latRange
 		return x, y
+	
+	def Draw(self, proj):
+		GL.glEnable(GL.GL_TEXTURE_2D)
+		GL.glBindTexture(GL.GL_TEXTURE_2D, self.num)
+		GL.glColor3f(0.98, 0.96, 0.95)
+
+		res = 2
+		for x in range(res):
+			for y in range(res):
+
+				bboxD = [float(x) * self.lonRange / res + self.bbox[0], 
+					float(y) * self.latRange / res + self.bbox[1],
+					float(x+1) * self.lonRange / res + self.bbox[0], 
+					float(y+1) * self.latRange / res + self.bbox[1]]
+				bboxR = map(math.radians, bboxD)
+
+				GL.glBegin(GL.GL_POLYGON)
+
+				GL.glTexCoord2f(*self.Project(bboxD[1], bboxD[0]))
+				GL.glVertex3f(*proj.Proj(bboxR[1],bboxR[0],0.))
+
+				GL.glTexCoord2f(*self.Project(bboxD[3], bboxD[0]))
+				GL.glVertex3f(*proj.Proj(bboxR[3],bboxR[0],0.))
+
+				GL.glTexCoord2f(*self.Project(bboxD[3], bboxD[2]))
+				GL.glVertex3f(*proj.Proj(bboxR[3],bboxR[2],0.))
+
+				GL.glTexCoord2f(*self.Project(bboxD[1], bboxD[2]))
+				GL.glVertex3f(*proj.Proj(bboxR[1],bboxR[2],0.))
+		
+				GL.glEnd()
 
 class Terrain(events.EventCallback):
 	def __init__(self, mediator):
@@ -38,6 +69,9 @@ class Terrain(events.EventCallback):
 
 		heightMap = hgtfile.OpenHgt("N53E027.hgt.zip")
 		self.heightTex = TerrainTexture(heightMap, [27., 53., 28., 54.])
+
+		heightMap2 = hgtfile.OpenHgt("N53E028.hgt.zip")
+		self.heightTex2 = TerrainTexture(heightMap2, [28., 53., 29., 54.])
 		
 	def ProcessEvent(self, event):
 		if event.type == "drawTerrain":
@@ -45,29 +79,9 @@ class Terrain(events.EventCallback):
 
 	def Draw(self, proj):
 
-		GL.glEnable(GL.GL_TEXTURE_2D)
-		GL.glBindTexture(GL.GL_TEXTURE_2D, self.heightTex.num)
-
 		#Draw the ground
-		GL.glColor3f(0.98, 0.96, 0.95)
-		GL.glBegin(GL.GL_POLYGON)
-		bboxD = self.kf.bbox
-		#bboxD = [27.3782, 53.930185, 27.3882, 53.940185]
-		bbox = map(math.radians, bboxD)
-
-		GL.glTexCoord2f(*self.heightTex.Project(bboxD[1], bboxD[0]))
-		GL.glVertex3f(*proj.Proj(bbox[1],bbox[0],0.))
-
-		GL.glTexCoord2f(*self.heightTex.Project(bboxD[3], bboxD[0]))
-		GL.glVertex3f(*proj.Proj(bbox[3],bbox[0],0.))
-
-		GL.glTexCoord2f(*self.heightTex.Project(bboxD[3], bboxD[2]))
-		GL.glVertex3f(*proj.Proj(bbox[3],bbox[2],0.))
-
-		GL.glTexCoord2f(*self.heightTex.Project(bboxD[1], bboxD[2]))
-		GL.glVertex3f(*proj.Proj(bbox[1],bbox[2],0.))
-		
-		GL.glEnd()
+		self.heightTex.Draw(proj)
+		self.heightTex2.Draw(proj)
 
 		GL.glColor3f(0.0, 0.0, 0.5)
 		for poly in self.kf.polygons:

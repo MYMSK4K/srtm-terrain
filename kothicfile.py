@@ -46,8 +46,8 @@ class KothicFile:
 				out.append(self.ConvertCoord(p))
 			return out
 		else:
-			return ((pt[1] / self.granuality) * self.bboxRange[0] + self.bbox[0], 
-				(pt[0] / self.granuality) * self.bboxRange[1] + self.bbox[1])
+			return ((pt[0] / self.granuality) * self.bboxRange[0] + self.bbox[0], 
+				(pt[1] / self.granuality) * self.bboxRange[1] + self.bbox[1])
 		
 def KothicMatplotlib(kf):
 	import matplotlib.pyplot as plt
