@@ -113,7 +113,9 @@ class Person(GameObj):
 				self.SetPos(self.moveOrder.copy())
 				self.moveOrder = None
 			else:
-				self.SetPos(proj.OffsetTowardsPoint(self.pos, moveTowards, self.speed * timeElapsed))
+				newPos = proj.OffsetTowardsPoint(self.pos, moveTowards, self.speed * timeElapsed)
+				newPos[2] = 0. #Fix items to surface of world
+				self.SetPos(newPos)
 
 		if self.attackOrder is not None:			
 			if dirMag <= self.attackRange:
@@ -185,7 +187,9 @@ class Shell(GameObj):
 			detonateEvent.proj = proj
 			self.mediator.Send(detonateEvent)
 		else:
-			self.SetPos(proj.OffsetTowardsPoint(self.pos, self.targetPos, self.speed * timeElapsed))
+			newPos = proj.OffsetTowardsPoint(self.pos, self.targetPos, self.speed * timeElapsed)
+			newPos[2] = 0. #Fix items to surface of world
+			self.SetPos(newPos)
 
 	def GetHealth(self):
 		return 1.

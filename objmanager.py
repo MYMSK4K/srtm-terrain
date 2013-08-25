@@ -216,11 +216,13 @@ class GameObjects(events.EventCallback):
 			for objId in self.objs:
 				obj = self.objs[objId]
 				if obj.playerId != self.playerId: continue
-				obj.MoveTo(worldPos)
+
+				worldPosFlat = (worldPos[0], worldPos[1], 0.)
+				obj.MoveTo(worldPosFlat)
 
 				moveOrder = events.Event("moveorder")
 				moveOrder.objId = obj.objId
-				moveOrder.pos = (worldPos[0], worldPos[1], 0.)
+				moveOrder.pos = worldPosFlat
 				self.mediator.Send(moveOrder)
 
 		if button == 3:

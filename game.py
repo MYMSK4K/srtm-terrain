@@ -88,13 +88,14 @@ class ProjFunc:
 		return dist / self.scale
 
 	def OffsetTowardsPoint(self, oriPt, towardPt, dist):
+		print dist
 		pt1 = self.Proj(math.radians(oriPt[0]), math.radians(oriPt[1]), oriPt[2])
 		pt2 = self.Proj(math.radians(towardPt[0]), math.radians(towardPt[1]), towardPt[2])
 		direction = pt2 - pt1
 		mag = np.linalg.norm(direction, ord=2)
 		if mag > 0.:
 			direction /= mag
-		offsetCart = direction * dist / self.scale + pt1
+		offsetCart = (direction * dist / self.scale) + pt1
 		outRad = self.UnProj(offsetCart[0], offsetCart[1], offsetCart[2])
 		return np.array((math.degrees(outRad[0]), math.degrees(outRad[1]), outRad[2]))
 
