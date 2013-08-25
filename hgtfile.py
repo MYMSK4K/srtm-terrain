@@ -1,6 +1,5 @@
 import struct, zipfile
 import numpy as np
-#import matplotlib.pyplot as plt
 
 def OpenHgt(fina):
 
@@ -19,12 +18,14 @@ def OpenHgt(fina):
 		#print off / l, len(fi) / l, v
 		data[count / sideLen, count % sideLen] = v
 
-	#print data.min(), data.max()
-	#imgplot = plt.imshow(data)
-	#plt.show()
 	return data
 
 if __name__=="__main__":
 
-	OpenHgt("N51E001.hgt.zip")
+	data = OpenHgt("N53E027.hgt.zip")
+	print data.min(), data.max()
+
+	import matplotlib.pyplot as plt
+	imgplot = plt.imshow(data)
+	plt.show()
 
