@@ -24,6 +24,10 @@ class TerrainTexture(object):
 		self.lonRange = bbox[2] - bbox[0]
 		self.latRange = bbox[3] - bbox[1]
 	
+	def __del__(self):
+		if self.dl is not None:
+			GL.glDeleteLists(self.dl, 1)
+
 	def Project(self, lat, lon):
 		x = (lon - self.bbox[0]) / self.lonRange
 		y = (lat - self.bbox[1]) / self.latRange
