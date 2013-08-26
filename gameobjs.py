@@ -136,7 +136,7 @@ class Person(GameObj):
 
 	def CollidesWithPoint(self, pos, objmgr):
 		assert len(self.pos) == 3
-		dist = objmgr.DistanceBetween(pos[0], pos[1], pos[2], 
+		dist = objmgr.proj.DistanceBetween(pos[0], pos[1], pos[2], 
 			self.pos[0], self.pos[1], self.pos[2])
 		return dist < self.radius
 

@@ -182,6 +182,7 @@ def run():
 				mouseEvent.worldPos = (clickLat, clickLon, latLonR[2])
 				mouseEvent.button = event.button
 				mouseEvent.proj = proj
+				mouseEvent.time = pygame.time.get_ticks() / 1000.
 				eventMediator.Send(mouseEvent)
 
 			if event.type == MOUSEBUTTONUP:
@@ -190,6 +191,7 @@ def run():
 				mouseEvent.worldPos = (clickLat, clickLon, latLonR[2])
 				mouseEvent.button = event.button
 				mouseEvent.proj = proj
+				mouseEvent.time = pygame.time.get_ticks() / 1000.
 				eventMediator.Send(mouseEvent)
 
 			if event.type == MOUSEMOTION:
@@ -198,6 +200,7 @@ def run():
 				mouseEvent.screenPos = event.pos
 				mouseEvent.worldPos = (clickLat, clickLon, latLonR[2])
 				mouseEvent.proj = proj
+				mouseEvent.time = pygame.time.get_ticks() / 1000.
 				eventMediator.Send(mouseEvent)
 
 			
@@ -225,6 +228,8 @@ def run():
 		camUpMag = np.linalg.norm(camUp, ord=2)
 		camUp /= camUpMag
 		
+		eventMediator.Update(pygame.time.get_ticks() / 1000.)
+
 		gameObjects.Update(time_passed_seconds, pygame.time.get_ticks() / 1000.)
 
 		# Clear the screen, and z-buffer

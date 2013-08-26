@@ -7,20 +7,45 @@ class Gui(events.EventCallback):
 		mediator.AddListener("mousebuttondown", self)
 		mediator.AddListener("mousebuttonup", self)
 		mediator.AddListener("mousemotion", self)
+		mediator.AddListener("mousedowntimeout", self)
 		self.playerId = None
 		self.faction = None
+		self.mousePressEvents = {}
+		#self.multiClickDriftTol = 5. #px
+		self.multiClickTimeout = .2 #sec
 
-	def ProcessEvent(self, event):
+	def ProcessEvent(self, ev):
 		#print event.type
-		if event.type == "mousebuttondown":
-			if event.button == 1:
-				self.SingleLeftClick(event.screenPos, event.worldPos)
+		if ev.type == "mousebuttondown":
+			if ev.button not in self.mousePressEvents:
+				self.mousePressEvents[ev.button] = []
+			self.mousePressEvents[ev.button].append(ev)
+			
+			timeOutEvent = events.Event("mousedowntimeout")
+			timeOutEvent.button = ev.button
+			timeOutEvent.triggerTime = ev.time
+			timeOutEvent.deliverAtTime = self.multiClickTimeout + ev.time
+			self.mediator.Send(timeOutEvent)
 
-			if event.button == 3:
-				self.SingleRightClick(event.screenPos, event.worldPos)
+		if ev.type == "mousedowntimeout":
+			
+			#Check if later clicks will be performing the time out
+			prevClick = self.mousePressEvents[ev.button][-1]
+			if ev.triggerTime != prevClick.time:
+				return
 
-		if event.type == "mousebuttonup":
-			print event.type
+			#Dispatch clicks
+			if ev.button == 1 and len(self.mousePressEvents[ev.button])==1:
+				self.SingleLeftClick(prevClick.screenPos, prevClick.worldPos)
+
+			if ev.button == 3 and len(self.mousePressEvents[ev.button])==1:
+				self.SingleRightClick(prevClick.screenPos, prevClick.worldPos)
+
+			#Clear click time log
+			self.mousePressEvents[ev.button] = []
+
+		if ev.type == "mousebuttonup":
+			print ev.type
 	
 	def SingleLeftClick(self, screenPos, worldPos):
 		moveOrder = events.Event("moveorder")
@@ -39,6 +64,7 @@ class Gui(events.EventCallback):
 			assert len(ret) == 2
 			bestUuid, bestDist = ret
 		if bestUuid is None: return
+		if bestDist > 5.: return
 
 		attackOrder = events.Event("attackorder")
 		attackOrder.targetId = bestUuid

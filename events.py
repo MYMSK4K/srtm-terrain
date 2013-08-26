@@ -6,6 +6,7 @@ class Event(object):
 		self.type = ty
 		self.dest = None
 		self.src = None
+		self.deliverAtTime = None
 
 class EventCallback(object):
 	def __init__(self, mediator):
@@ -18,8 +19,13 @@ class EventCallback(object):
 class EventMediator(object):
 	def __init__(self):
 		self.listeners = {}
+		self.delayedMessages = []
 
 	def Send(self, msg):
+
+		if msg.deliverAtTime is not None:
+			self.delayedMessages.append(msg)
+			return
 
 		if msg.type not in self.listeners:
 			#raise Exception("Unknown message type")
@@ -38,6 +44,21 @@ class EventMediator(object):
 			for li in tyListeners:
 				ret.append(tyListeners[li].ProcessEvent(msg))
 			return ret
+
+	def Update(self, gameTime):
+		delivered = []
+		for i, msg in enumerate(self.delayedMessages):
+			if gameTime >= msg.deliverAtTime:
+				msg.time = gameTime
+				msg.deliverAtTime = None
+				self.Send(msg)
+				delivered.append(i)
+
+		delayedMessagesOld = self.delayedMessages
+		self.delayedMessages = []
+		for i, msg in enumerate(delayedMessagesOld):
+			if i in delivered: continue
+			self.delayedMessages.append(msg)
 
 	def AddListener(self, ty, callbackObj):
 
