@@ -53,10 +53,14 @@ class Person(GameObj):
 		self.radius = 1.
 
 	def Draw(self, proj, objmgr):
-		if self.faction in objmgr.factionColours:
-			GL.glColor3f(*objmgr.factionColours[self.faction])
+
+		if self.health > 0.:
+			if self.faction in objmgr.factionColours:
+				GL.glColor3f(*objmgr.factionColours[self.faction])
+			else:
+				GL.glColor3f(1., 1., 1.)
 		else:
-			GL.glColor3f(1., 1., 1.)
+			GL.glColor3f(0.2, 0.2, 0.2)
 
 		glRadius = proj.ScaleDistance(self.radius)
 		GL.glPushMatrix()
