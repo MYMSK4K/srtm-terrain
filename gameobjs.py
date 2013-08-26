@@ -13,7 +13,7 @@ class GameObj(object):
 		self.faction = 0
 		self.pos = np.array((0., 0., 0.))
 
-	def Draw(self, proj):
+	def Draw(self, proj, objmgr):
 		pass
 
 	def Update(self, timeElapsed, timeNow, proj):
@@ -52,15 +52,11 @@ class Person(GameObj):
 		self.health = 1.
 		self.radius = 1.
 
-	def Draw(self, proj):
-		if self.faction == 0:
-			GL.glColor3f(1., 0., 0.)
-		if self.faction == 1:
-			GL.glColor3f(0., 1., 0.)
-		if self.faction == 2:
-			GL.glColor3f(0., 0., 1.)
-		if self.health == 0.:
-			GL.glColor3f(0.3, 0.3, 0.3)
+	def Draw(self, proj, objmgr):
+		if self.faction in objmgr.factionColours:
+			GL.glColor3f(*objmgr.factionColours[self.faction])
+		else:
+			GL.glColor3f(1., 1., 1.)
 
 		glRadius = proj.ScaleDistance(self.radius)
 		GL.glPushMatrix()
@@ -159,7 +155,7 @@ class Shell(GameObj):
 		self.mediator = mediator
 		self.attackOrder = None
 
-	def Draw(self, proj):
+	def Draw(self, proj, objmgr):
 
 		glRadius = proj.ScaleDistance(self.radius)
 		GL.glPushMatrix()
@@ -199,15 +195,13 @@ class AreaObjective(GameObj):
 		super(AreaObjective, self).__init__(mediator)
 		self.radius = 10.
 
-	def Draw(self, proj):
+	def Draw(self, proj, objmgr):
 		glRadius = proj.ScaleDistance(self.radius)
 
-		if self.faction == 0:
-			GL.glColor3f(1., 0., 0.)
-		if self.faction == 1:
-			GL.glColor3f(0., 1., 0.)
-		if self.faction == 2:
-			GL.glColor3f(0., 0., 1.)
+		if self.faction in objmgr.factionColours:
+			GL.glColor3f(*objmgr.factionColours[self.faction])
+		else:
+			GL.glColor3f(1., 1., 1.)
 
 		GL.glPushMatrix()
 		proj.TransformToLocalCoords(self.pos[0], self.pos[1], 0.)

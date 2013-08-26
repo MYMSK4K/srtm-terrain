@@ -125,10 +125,17 @@ def run():
 	terrainMgr.proj = proj
 
 	guiMgr = gui.Gui(eventMediator)
+	guiMgr.playerId = uuid.uuid4()
+	guiMgr.faction = uuid.uuid4()
+
+	addFaction = events.Event("addfactioncolour")
+	addFaction.faction = guiMgr.faction
+	addFaction.colour = (1., 0., 0.)
+	eventMediator.Send(addFaction)
 
 	player = gameobjs.Person(eventMediator)
-	player.playerId = uuid.uuid4()
-	player.faction = 1
+	player.playerId = guiMgr.playerId
+	player.faction = guiMgr.faction
 	player.SetPos((camLatLon[0], camLatLon[1], 0.))
 	gameObjects.Add(player)
 	gameObjects.playerId = player.playerId
@@ -150,28 +157,46 @@ def run():
 				return
 			if event.type == KEYUP and event.key == K_ESCAPE:
 				return
-			if event.type == MOUSEBUTTONDOWN:
+
+			clickLat, clickLon, latLonR = None, None, None
+			if event.type in [MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION]:
 				#Convert from screen to world coordinates
 				glDepth = glReadPixels(event.pos[0], SCREEN_SIZE[1] - event.pos[1], 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT);
 				clickWorld = gluUnProject(event.pos[0], SCREEN_SIZE[1] - event.pos[1], glDepth)
-				print clickWorld				
+				#print clickWorld				
 
 				#Convert from world to lat lon
 				latLonR = proj.UnProj(*clickWorld)
 				clickLat = math.degrees(latLonR[0])
 				clickLon = math.degrees(latLonR[1])
-				print clickLat, clickLon, latLonR[2]
+				#print clickLat, clickLon, latLonR[2]
 
+			if event.type == MOUSEBUTTONDOWN:
 				#Emit event
-				gameObjects.WorldClick((clickLat, clickLon, latLonR[2]), event.button, proj)
+				#gameObjects.WorldClick((clickLat, clickLon, latLonR[2]), event.button, proj)
 
 				#Emit raw event
 				mouseEvent = events.Event("mousebuttondown")
+				mouseEvent.screenPos = event.pos
+				mouseEvent.worldPos = (clickLat, clickLon, latLonR[2])
+				mouseEvent.button = event.button
+				mouseEvent.proj = proj
+				eventMediator.Send(mouseEvent)
+
+			if event.type == MOUSEBUTTONUP:
+				mouseEvent = events.Event("mousebuttonup")
+				mouseEvent.screenPos = event.pos
+				mouseEvent.worldPos = (clickLat, clickLon, latLonR[2])
+				mouseEvent.button = event.button
+				mouseEvent.proj = proj
 				eventMediator.Send(mouseEvent)
 
 			if event.type == MOUSEMOTION:
 				#Emit raw event
 				mouseEvent = events.Event("mousemotion")
+				mouseEvent.screenPos = event.pos
+				mouseEvent.worldPos = (clickLat, clickLon, latLonR[2])
+				mouseEvent.proj = proj
 				eventMediator.Send(mouseEvent)
 
 			

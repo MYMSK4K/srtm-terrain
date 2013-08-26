@@ -14,6 +14,7 @@ class GameObjects(events.EventCallback):
 		mediator.AddListener("targethit", self)
 		mediator.AddListener("shellmiss", self)
 		mediator.AddListener("attackorder", self)
+		mediator.AddListener("getNearbyUnits", self)
 		mediator.AddListener("moveorder", self)
 		mediator.AddListener("stoporder", self)
 		mediator.AddListener("enterarea", self)
@@ -22,6 +23,7 @@ class GameObjects(events.EventCallback):
 		mediator.AddListener("addarea", self)
 		mediator.AddListener("setmission", self)
 		mediator.AddListener("drawObjects", self)
+		mediator.AddListener("addfactioncolour", self)
 
 		self.objs = {}
 		self.newObjs = [] #Add these to main object dict after iteration
@@ -29,6 +31,7 @@ class GameObjects(events.EventCallback):
 		self.areaContents = {}
 		self.verbose = 0
 		self.playerId = None
+		self.factionColours = {}
 
 	def Add(self, obj):
 		self.objs[obj.objId] = obj
@@ -99,10 +102,16 @@ class GameObjects(events.EventCallback):
 			if self.verbose: print event.type
 
 		if event.type == "attackorder":
-			if self.verbose: print event.type
+			for objId in self.objs:
+				obj = self.objs[objId]
+				if obj.playerId != event.playerId: continue
+				obj.Attack(event.targetId)
 
 		if event.type == "moveorder":
-			if self.verbose: print event.type
+			for objId in self.objs:
+				obj = self.objs[objId]
+				if obj.playerId != event.playerId: continue
+				obj.MoveTo(event.pos)
 
 		if event.type == "stoporder":
 			if self.verbose: print event.type
@@ -133,6 +142,12 @@ class GameObjects(events.EventCallback):
 
 		if event.type == "drawObjects":
 			self.Draw(event.proj)
+
+		if event.type == "getNearbyUnits":
+			return self.ObjNearPos(event.pos, event.proj, event.notFaction)
+
+		if event.type == "addfactioncolour":
+			self.AddFactionColour(event.faction, event.colour)
 
 	def Update(self, timeElapsed, timeNow, proj):
 		for objId in self.objs:
@@ -192,7 +207,7 @@ class GameObjects(events.EventCallback):
 
 	def Draw(self, proj):
 		for objId in self.objs:
-			self.objs[objId].Draw(proj)
+			self.objs[objId].Draw(proj, self)
 
 	def ObjNearPos(self, pos, proj, notFaction = None):
 		bestDist, bestUuid = None, None
@@ -211,45 +226,6 @@ class GameObjects(events.EventCallback):
 
 		return bestUuid, bestDist
 
-	def WorldClick(self, worldPos, button, proj):
-		if button == 1:
-			for objId in self.objs:
-				obj = self.objs[objId]
-				if obj.playerId != self.playerId: continue
-
-				worldPosFlat = (worldPos[0], worldPos[1], 0.)
-				obj.MoveTo(worldPosFlat)
-
-				moveOrder = events.Event("moveorder")
-				moveOrder.objId = obj.objId
-				moveOrder.pos = worldPosFlat
-				self.mediator.Send(moveOrder)
-
-		if button == 3:
-			bestUuid, bestDist = self.ObjNearPos(worldPos, proj, 1)
-			clickTolerance = 5.
-			print bestUuid, bestDist
-
-			if bestUuid is not None and bestDist < clickTolerance:
-				for objId in self.objs:
-					obj = self.objs[objId]
-					if obj.playerId != self.playerId: continue
-					obj.Attack(bestUuid)
-
-					if bestUuid is not None:
-						attackOrder = events.Event("attackorder")
-						attackOrder.attackerId = obj.objId
-						attackOrder.targetId = bestUuid
-						self.mediator.Send(attackOrder)
-
-			if bestUuid is None or bestDist >= clickTolerance:
-				for objId in self.objs:
-					obj = self.objs[objId]
-					if obj.playerId != self.playerId: continue
-					#Stop attack
-					obj.Attack(None)
-
-					stopOrder = events.Event("stoporder")
-					stopOrder.objId = obj.objId
-					self.mediator.Send(stopOrder)
+	def AddFactionColour(self, faction, col):
+		self.factionColours[faction] = col
 

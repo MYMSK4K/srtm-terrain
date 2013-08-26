@@ -1,5 +1,5 @@
 
-import events, random
+import events, random, uuid
 
 class Script(events.EventCallback):
 	def __init__(self, mediator):
@@ -19,15 +19,21 @@ class Script(events.EventCallback):
 		mediator.AddListener("addplayer", self)
 	
 		self.enemyId = None
+		self.enemyFaction = uuid.uuid4()
 
 	def ProcessEvent(self, event):
 		print event.type
 
 		if event.type == "gamestart":
 
+			addFaction = events.Event("addfactioncolour")
+			addFaction.faction = self.enemyFaction
+			addFaction.colour = (0., 0., 1.)
+			self.mediator.Send(addFaction)
+
 			event = events.Event("addunit")
 			event.pos = (53.93025, 27.3777)
-			event.faction = 2
+			event.faction = self.enemyFaction
 			self.enemyId = self.mediator.Send(event)[0]
 
 			au = events.Event("setmission")
@@ -43,7 +49,7 @@ class Script(events.EventCallback):
 			if self.enemyId == event.objId:
 				au = events.Event("addunit")
 				au.pos = (random.random() * 30. - 15., random.random() * 30. - 15.)
-				au.faction = 2
+				au.faction = self.enemyFaction
 				self.enemyId = self.mediator.Send(au)[0]
 
 				au2 = events.Event("setmission")
