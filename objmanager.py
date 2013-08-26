@@ -32,6 +32,7 @@ class GameObjects(events.EventCallback):
 		self.verbose = 0
 		self.playerId = None
 		self.factionColours = {}
+		self.proj = None
 
 	def Add(self, obj):
 		self.objs[obj.objId] = obj
@@ -62,7 +63,7 @@ class GameObjects(events.EventCallback):
 			hitCount = 0
 			for objId in self.objs:
 				obj = self.objs[objId]
-				hit = obj.CollidesWithPoint((event.pos[0], event.pos[1], 0.), event.proj)
+				hit = obj.CollidesWithPoint((event.pos[0], event.pos[1], 0.), self)
 
 				if hit and obj.health > 0.:
 					hitCount += 1
@@ -141,17 +142,17 @@ class GameObjects(events.EventCallback):
 			print event.text
 
 		if event.type == "drawObjects":
-			self.Draw(event.proj)
+			self.Draw()
 
 		if event.type == "getNearbyUnits":
-			return self.ObjNearPos(event.pos, event.proj, event.notFaction)
+			return self.ObjNearPos(event.pos, event.notFaction)
 
 		if event.type == "addfactioncolour":
 			self.AddFactionColour(event.faction, event.colour)
 
-	def Update(self, timeElapsed, timeNow, proj):
+	def Update(self, timeElapsed, timeNow):
 		for objId in self.objs:
-			self.objs[objId].Update(timeElapsed, timeNow, proj)
+			self.objs[objId].Update(timeElapsed, timeNow, self)
 
 		#Update list of objects with new items
 		for obj in self.newObjs:
@@ -188,7 +189,7 @@ class GameObjects(events.EventCallback):
 			for objId in self.objs:
 				obj = self.objs[objId]
 				if isinstance(obj, gameobjs.AreaObjective): continue
-				contains = area.CollidesWithPoint((obj.pos[0], obj.pos[1], 0.), proj)
+				contains = area.CollidesWithPoint((obj.pos[0], obj.pos[1], 0.), self)
 				if contains and objId not in contents:
 					areaEvent = events.Event("enterarea")
 					areaEvent.objId = objId
@@ -205,11 +206,11 @@ class GameObjects(events.EventCallback):
 
 					contents.remove(objId)			
 
-	def Draw(self, proj):
+	def Draw(self):
 		for objId in self.objs:
-			self.objs[objId].Draw(proj, self)
+			self.objs[objId].Draw(self)
 
-	def ObjNearPos(self, pos, proj, notFaction = None):
+	def ObjNearPos(self, pos, notFaction = None):
 		bestDist, bestUuid = None, None
 		pos = np.array(pos)
 		for objId in self.objs:
@@ -218,7 +219,7 @@ class GameObjects(events.EventCallback):
 			health = obj.GetHealth()
 			if health is None: continue
 			if health == 0.: continue #Ignore dead targets
-			mag = proj.DistanceBetween(obj.pos[0], obj.pos[1], 0., 
+			mag = self.proj.DistanceBetween(obj.pos[0], obj.pos[1], 0., 
 				pos[0], pos[1], 0.)
 			if bestDist is None or mag < bestDist:
 				bestDist = mag

@@ -13,16 +13,16 @@ class GameObj(object):
 		self.faction = 0
 		self.pos = np.array((0., 0., 0.))
 
-	def Draw(self, proj, objmgr):
+	def Draw(self, objmgr):
 		pass
 
-	def Update(self, timeElapsed, timeNow, proj):
+	def Update(self, timeElapsed, timeNow, objmgr):
 		pass
 
 	def GetHealth(self):
 		return None
 
-	def CollidesWithPoint(self, pos, proj):
+	def CollidesWithPoint(self, pos, objmgr):
 		return False
 
 	def GetAttackTarget(self):
@@ -52,7 +52,7 @@ class Person(GameObj):
 		self.health = 1.
 		self.radius = 1.
 
-	def Draw(self, proj, objmgr):
+	def Draw(self, objmgr):
 
 		if self.health > 0.:
 			if self.faction in objmgr.factionColours:
@@ -62,10 +62,10 @@ class Person(GameObj):
 		else:
 			GL.glColor3f(0.2, 0.2, 0.2)
 
-		glRadius = proj.ScaleDistance(self.radius)
+		glRadius = objmgr.proj.ScaleDistance(self.radius)
 		GL.glPushMatrix()
 
-		proj.TransformToLocalCoords(self.pos[0], self.pos[1], 0.)
+		objmgr.proj.TransformToLocalCoords(self.pos[0], self.pos[1], 0.)
 		
 		GL.glBegin(GL.GL_POLYGON)
 		for i in range(10):
@@ -89,12 +89,12 @@ class Person(GameObj):
 		self.attackOrder = uuid
 		self.moveOrder = None
 
-	def Update(self, timeElapsed, timeNow, proj):
+	def Update(self, timeElapsed, timeNow, objmgr):
 		
 		moveTowards = self.moveOrder
 
 		if moveTowards is not None:
-			dirMag = proj.DistanceBetween(self.pos[0], self.pos[1], self.pos[2], 
+			dirMag = objmgr.proj.DistanceBetween(self.pos[0], self.pos[1], self.pos[2], 
 				moveTowards[0], moveTowards[1], moveTowards[2])
 
 		if self.attackOrder is not None:
@@ -102,7 +102,7 @@ class Person(GameObj):
 			event.objId = self.attackOrder
 			getEnemyPosRet = self.mediator.Send(event)
 			getEnemyPos = getEnemyPosRet[0]
-			dirMag = proj.DistanceBetween(self.pos[0], self.pos[1], self.pos[2], 
+			dirMag = objmgr.proj.DistanceBetween(self.pos[0], self.pos[1], self.pos[2], 
 				getEnemyPos[0], getEnemyPos[1], getEnemyPos[2])
 
 			if dirMag > self.attackRange * 0.95:
@@ -113,7 +113,7 @@ class Person(GameObj):
 				self.SetPos(self.moveOrder.copy())
 				self.moveOrder = None
 			else:
-				newPos = proj.OffsetTowardsPoint(self.pos, moveTowards, self.speed * timeElapsed)
+				newPos = objmgr.proj.OffsetTowardsPoint(self.pos, moveTowards, self.speed * timeElapsed)
 				newPos[2] = 0. #Fix items to surface of world
 				self.SetPos(newPos)
 
@@ -134,9 +134,9 @@ class Person(GameObj):
 					fireEvent.speed = 10.
 					self.mediator.Send(fireEvent)
 
-	def CollidesWithPoint(self, pos, proj):
+	def CollidesWithPoint(self, pos, objmgr):
 		assert len(self.pos) == 3
-		dist = proj.DistanceBetween(pos[0], pos[1], pos[2], 
+		dist = objmgr.DistanceBetween(pos[0], pos[1], pos[2], 
 			self.pos[0], self.pos[1], self.pos[2])
 		return dist < self.radius
 
@@ -159,11 +159,11 @@ class Shell(GameObj):
 		self.mediator = mediator
 		self.attackOrder = None
 
-	def Draw(self, proj, objmgr):
+	def Draw(self, objmgr):
 
-		glRadius = proj.ScaleDistance(self.radius)
+		glRadius = objmgr.proj.ScaleDistance(self.radius)
 		GL.glPushMatrix()
-		proj.TransformToLocalCoords(self.pos[0], self.pos[1], 0.)
+		objmgr.proj.TransformToLocalCoords(self.pos[0], self.pos[1], 0.)
 		GL.glColor3f(0.5, 0.5, 0.5)
 
 		GL.glBegin(GL.GL_POLYGON)
@@ -173,8 +173,8 @@ class Shell(GameObj):
 
 		GL.glPopMatrix()
 
-	def Update(self, timeElapsed, timeNow, proj):
-		dirMag = proj.DistanceBetween(self.pos[0], self.pos[1], self.pos[2], 
+	def Update(self, timeElapsed, timeNow, objmgr):
+		dirMag = objmgr.proj.DistanceBetween(self.pos[0], self.pos[1], self.pos[2], 
 			self.targetPos[0], self.targetPos[1], self.targetPos[2])
 
 		if dirMag < timeElapsed * self.speed:
@@ -184,10 +184,10 @@ class Shell(GameObj):
 			detonateEvent.objId = self.objId
 			detonateEvent.firerId = self.firerId
 			detonateEvent.playerId = self.playerId
-			detonateEvent.proj = proj
+			detonateEvent.proj = objmgr.proj
 			self.mediator.Send(detonateEvent)
 		else:
-			newPos = proj.OffsetTowardsPoint(self.pos, self.targetPos, self.speed * timeElapsed)
+			newPos = objmgr.proj.OffsetTowardsPoint(self.pos, self.targetPos, self.speed * timeElapsed)
 			newPos[2] = 0. #Fix items to surface of world
 			self.SetPos(newPos)
 
@@ -199,8 +199,8 @@ class AreaObjective(GameObj):
 		super(AreaObjective, self).__init__(mediator)
 		self.radius = 10.
 
-	def Draw(self, proj, objmgr):
-		glRadius = proj.ScaleDistance(self.radius)
+	def Draw(self, objmgr):
+		glRadius = objmgr.proj.ScaleDistance(self.radius)
 
 		if self.faction in objmgr.factionColours:
 			GL.glColor3f(*objmgr.factionColours[self.faction])
@@ -208,7 +208,7 @@ class AreaObjective(GameObj):
 			GL.glColor3f(1., 1., 1.)
 
 		GL.glPushMatrix()
-		proj.TransformToLocalCoords(self.pos[0], self.pos[1], 0.)
+		objmgr.proj.TransformToLocalCoords(self.pos[0], self.pos[1], 0.)
 
 		GL.glBegin(GL.GL_LINE_LOOP)
 		for i in range(50):
@@ -217,11 +217,11 @@ class AreaObjective(GameObj):
 
 		GL.glPopMatrix()
 
-	def Update(self, timeElapsed, timeNow, proj):
+	def Update(self, timeElapsed, timeNow, objmgr):
 		pass
 
-	def CollidesWithPoint(self, pos, proj):
-		dist = proj.DistanceBetween(pos[0], pos[1], pos[2], 
+	def CollidesWithPoint(self, pos, objmgr):
+		dist = objmgr.proj.DistanceBetween(pos[0], pos[1], pos[2], 
 			self.pos[0], self.pos[1], self.pos[2])
 		return dist < self.radius
 

@@ -121,6 +121,7 @@ def run():
 
 	scriptObj = script.Script(eventMediator)
 	gameObjects = objmanager.GameObjects(eventMediator)
+	gameObjects.proj = proj
 	terrainMgr = terrain.Terrain(eventMediator)
 	terrainMgr.proj = proj
 
@@ -224,7 +225,7 @@ def run():
 		camUpMag = np.linalg.norm(camUp, ord=2)
 		camUp /= camUpMag
 		
-		gameObjects.Update(time_passed_seconds, pygame.time.get_ticks() / 1000., proj)
+		gameObjects.Update(time_passed_seconds, pygame.time.get_ticks() / 1000.)
 
 		# Clear the screen, and z-buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
