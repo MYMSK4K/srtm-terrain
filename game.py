@@ -1,7 +1,7 @@
 
 SCREEN_SIZE = (800, 600)
 
-import math, uuid, events, script, gameobjs, objmanager, terrain
+import math, uuid, events, script, gameobjs, objmanager, terrain, gui
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -124,6 +124,8 @@ def run():
 	terrainMgr = terrain.Terrain(eventMediator)
 	terrainMgr.proj = proj
 
+	guiMgr = gui.Gui(eventMediator)
+
 	player = gameobjs.Person(eventMediator)
 	player.playerId = uuid.uuid4()
 	player.faction = 1
@@ -162,6 +164,17 @@ def run():
 
 				#Emit event
 				gameObjects.WorldClick((clickLat, clickLon, latLonR[2]), event.button, proj)
+
+				#Emit raw event
+				mouseEvent = events.Event("mousebuttondown")
+				eventMediator.Send(mouseEvent)
+
+			if event.type == MOUSEMOTION:
+				#Emit raw event
+				mouseEvent = events.Event("mousemotion")
+				eventMediator.Send(mouseEvent)
+
+			
 
 		pressed = pygame.key.get_pressed()
 
