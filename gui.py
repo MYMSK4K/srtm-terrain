@@ -59,14 +59,13 @@ class Gui(events.EventCallback):
 			#print ev.type
 			self.mouseDownStart[ev.button] = None
 
+			#Detect if this was a valid click and drag
 			if ev.button in self.mouseDragBounds:
 				selectBox = self.mouseDragBounds[ev.button]
 				if selectBox is not None and selectBox[1] is not None:
 					dragDist = np.linalg.norm(np.array(selectBox[0].screenPos) - np.array(selectBox[1].screenPos), ord=2)
 					if dragDist >= self.selectTolerance:
-						print selectBox[0].worldPos
-						print selectBox[1].worldPos
-						print dragDist
+						self.ClickDragEnd(selectBox[0], selectBox[1])
 
 			self.mouseDragBounds[ev.button] = None
 
@@ -159,6 +158,13 @@ class Gui(events.EventCallback):
 				playerSpecificSelection.append(obj)
 			attackOrder.selection = playerSpecificSelection
 			self.mediator.Send(attackOrder)
+
+	def ClickDragEnd(self, startEv, endEv):
+		getReq = events.Event("getUnitsInBbox")
+		getReq.pos1 = startEv.worldPos
+		getReq.pos2 = endEv.worldPos
+		getResult = self.mediator.Send(getReq)
+		self.selection = getResult[0]
 
 	def DrawSelection(self, proj):
 

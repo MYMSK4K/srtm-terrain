@@ -7,15 +7,18 @@ import numpy as np
 class GameObjects(events.EventCallback):
 	def __init__(self, mediator):
 		super(GameObjects, self).__init__(mediator)
+		mediator.AddListener("getNearbyUnits", self)
+		mediator.AddListener("getUnitsInBbox", self)
+
 		mediator.AddListener("getpos", self)
 		mediator.AddListener("getfaction", self)
+
 		mediator.AddListener("fireshell", self)
 		mediator.AddListener("detonate", self)
 		mediator.AddListener("targetdestroyed", self)
 		mediator.AddListener("targethit", self)
 		mediator.AddListener("shellmiss", self)
 		mediator.AddListener("attackorder", self)
-		mediator.AddListener("getNearbyUnits", self)
 		mediator.AddListener("moveorder", self)
 		mediator.AddListener("stoporder", self)
 		mediator.AddListener("enterarea", self)
@@ -150,6 +153,9 @@ class GameObjects(events.EventCallback):
 		if event.type == "getNearbyUnits":
 			return self.ObjNearPos(event.pos, event.notFaction)
 
+		if event.type == "getUnitsInBbox":
+			return self.GetUnitsInBbox(event.pos1, event.pos2)
+
 		if event.type == "addfactioncolour":
 			self.AddFactionColour(event.faction, event.colour)
 
@@ -229,6 +235,22 @@ class GameObjects(events.EventCallback):
 				bestUuid = obj.objId
 
 		return bestUuid, bestDist
+
+	def GetUnitsInBbox(self, pos1, pos2):
+		out = []
+		for objId in self.objs:
+			obj = self.objs[objId]
+			health = obj.GetHealth()
+			if health is None: continue
+			if health == 0.: continue #Ignore dead targets
+			latVals = (pos1[0], pos2[0])
+			lonVals = (pos1[1], pos2[1])
+			inLat = (min(latVals)<=obj.pos[0]) and (max(latVals)>=obj.pos[0])
+			inLon = (min(lonVals)<=obj.pos[1]) and (max(lonVals)>=obj.pos[1])
+
+			if inLat and inLon:
+				out.append(objId)
+		return out
 
 	def AddFactionColour(self, faction, col):
 		self.factionColours[faction] = col
