@@ -103,13 +103,14 @@ class GameObjects(events.EventCallback):
 			if self.verbose: print event.type
 
 		if event.type == "attackorder":
-			for objId in self.objs:
+			for objId in event.selection:
 				obj = self.objs[objId]
 				if obj.playerId != event.playerId: continue
 				obj.Attack(event.targetId)
 
 		if event.type == "moveorder":
-			for objId in self.objs:
+			print event.selection
+			for objId in event.selection:
 				obj = self.objs[objId]
 				if obj.playerId != event.playerId: continue
 				obj.MoveTo(event.pos)

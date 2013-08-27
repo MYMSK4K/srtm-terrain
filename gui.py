@@ -118,10 +118,10 @@ class Gui(events.EventCallback):
 			#Select unit
 			self.selection = []
 			self.selection.append(nearUnitId)
-			print "selection changed"
 		else:
 			moveOrder = events.Event("moveorder")
 			moveOrder.pos = (worldPos[0], worldPos[1], 0.)
+			moveOrder.selection = self.selection
 			moveOrder.playerId = self.playerId
 			self.mediator.Send(moveOrder)
 
@@ -129,10 +129,12 @@ class Gui(events.EventCallback):
 
 		nearUnitId, nearUnitDistW, nearUnitDistS = self.ClickUnitCheck(screenPos, worldPos, proj, screenSize)
 
-		attackOrder = events.Event("attackorder")
-		attackOrder.targetId = bestUuid
-		attackOrder.playerId = self.playerId
-		self.mediator.Send(attackOrder)
+		if nearUnitDistS < self.selectTolerance:
+			attackOrder = events.Event("attackorder")
+			attackOrder.targetId = nearUnitId
+			attackOrder.playerId = self.playerId
+			attackOrder.selection = self.selection
+			self.mediator.Send(attackOrder)
 
 	def DrawSelection(self, proj):
 
