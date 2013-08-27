@@ -31,7 +31,6 @@ class GameObjects(events.EventCallback):
 		self.objsToRemove = [] #Remove these after current iteration
 		self.areaContents = {}
 		self.verbose = 0
-		self.playerId = None
 		self.factionColours = {}
 		self.proj = None
 
