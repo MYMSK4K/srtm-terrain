@@ -67,11 +67,6 @@ class Gui(events.EventCallback):
 					pressed = True
 					self.mouseDragBounds[button] = [self.mouseDownStart[button], ev]
 
-			if not pressed: return
-			#Drag event
-
-
-
 		if ev.type == "drawselection":
 			self.DrawSelection(ev.proj)
 
@@ -79,7 +74,9 @@ class Gui(events.EventCallback):
 				if button is None: continue
 				boxEv = self.mouseDragBounds[button]
 				if boxEv is None: continue
-				print boxEv[0].worldPos, boxEv[1].worldPos
+				pt1 = boxEv[0].proj.Proj(*boxEv[0].worldPos)
+				pt2 = boxEv[0].proj.Proj(*boxEv[1].worldPos)
+				print pt1, pt2
 
 
 	def ClickUnitCheck(self, screenPos, worldPos, proj, screenSize):
