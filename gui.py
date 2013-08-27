@@ -74,10 +74,28 @@ class Gui(events.EventCallback):
 				if button is None: continue
 				boxEv = self.mouseDragBounds[button]
 				if boxEv is None: continue
-				pt1 = boxEv[0].proj.Proj(*boxEv[0].worldPos)
-				pt2 = boxEv[0].proj.Proj(*boxEv[1].worldPos)
-				print pt1, pt2
+				pt1w = boxEv[0].worldPos
+				pt2w = boxEv[1].worldPos
+				pt1 = boxEv[0].proj.ProjDeg(pt1w[0], pt1w[1], pt1w[2])
+				pt2 = boxEv[0].proj.ProjDeg(pt1w[0], pt2w[1], pt1w[2])
+				pt3 = boxEv[0].proj.ProjDeg(pt2w[0], pt2w[1], pt2w[2])
+				pt4 = boxEv[0].proj.ProjDeg(pt2w[0], pt1w[1], pt2w[2])
 
+
+				GL.glDisable(GL.GL_DEPTH_TEST)
+				GL.glColor3f(0.1,0.8,0.1)
+
+				GL.glBegin(GL.GL_LINE_LOOP)
+				GL.glVertex(*pt1)
+				GL.glVertex(*pt2)
+				GL.glVertex(*pt3)
+				GL.glVertex(*pt4)
+				GL.glEnd()
+
+				#print GLU.gluProject(*pt1)
+				#print GLU.gluProject(*pt2)
+				
+				GL.glEnable(GL.GL_DEPTH_TEST)
 
 	def ClickUnitCheck(self, screenPos, worldPos, proj, screenSize):
 		#print "clickScreenPos", screenPos
@@ -107,7 +125,7 @@ class Gui(events.EventCallback):
 			#print "at worldPos", nearestUnitWorldPos
 
 			#Get cartesian position
-			cartPos = proj.Proj(math.radians(nearestUnitWorldPos[0]), math.radians(nearestUnitWorldPos[1]), nearestUnitWorldPos[2])
+			cartPos = proj.ProjDeg(*nearestUnitWorldPos)
 			#print "cartPos", cartPos
 
 			#Get screen coordinates of nearest unit
@@ -172,6 +190,7 @@ class Gui(events.EventCallback):
 			boxHalfWidth = proj.ScaleDistance(1.5)
 			boxTick = proj.ScaleDistance(.3)
 
+			GL.glDisable(GL.GL_DEPTH_TEST)
 			GL.glPushMatrix()
 			GL.glColor3f(0.1,0.8,0.1)
 
@@ -201,5 +220,7 @@ class Gui(events.EventCallback):
 			GL.glVertex(-boxHalfWidth, boxHalfWidth-boxTick, 0.)
 			GL.glEnd()
 
+
 			GL.glPopMatrix()
+			GL.glEnable(GL.GL_DEPTH_TEST)
 

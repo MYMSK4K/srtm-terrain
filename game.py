@@ -48,6 +48,9 @@ class ProjFunc:
 		out = np.array((x,y,z)) - self.glOrigin
 		return out
 
+	def ProjDeg(self, latD, lonD, alt):
+		return self.Proj(math.radians(latD), math.radians(lonD), alt)
+
 	def UnProj(self, x, y, z):
 		pos = np.array([x,y,z])+self.glOrigin
 		R = np.linalg.norm(pos, ord=2)
