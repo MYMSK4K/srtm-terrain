@@ -58,6 +58,16 @@ class Gui(events.EventCallback):
 		if ev.type == "mousebuttonup":
 			#print ev.type
 			self.mouseDownStart[ev.button] = None
+
+			if ev.button in self.mouseDragBounds:
+				selectBox = self.mouseDragBounds[ev.button]
+				if selectBox is not None and selectBox[1] is not None:
+					dragDist = np.linalg.norm(np.array(selectBox[0].screenPos) - np.array(selectBox[1].screenPos), ord=2)
+					if dragDist >= self.selectTolerance:
+						print selectBox[0].worldPos
+						print selectBox[1].worldPos
+						print dragDist
+
 			self.mouseDragBounds[ev.button] = None
 
 		if ev.type == "mousemotion":
@@ -70,32 +80,7 @@ class Gui(events.EventCallback):
 		if ev.type == "drawselection":
 			self.DrawSelection(ev.proj)
 
-			for button in self.mouseDragBounds:
-				if button is None: continue
-				boxEv = self.mouseDragBounds[button]
-				if boxEv is None: continue
-				pt1w = boxEv[0].worldPos
-				pt2w = boxEv[1].worldPos
-				pt1 = boxEv[0].proj.ProjDeg(pt1w[0], pt1w[1], pt1w[2])
-				pt2 = boxEv[0].proj.ProjDeg(pt1w[0], pt2w[1], pt1w[2])
-				pt3 = boxEv[0].proj.ProjDeg(pt2w[0], pt2w[1], pt2w[2])
-				pt4 = boxEv[0].proj.ProjDeg(pt2w[0], pt1w[1], pt2w[2])
-
-
-				GL.glDisable(GL.GL_DEPTH_TEST)
-				GL.glColor3f(0.1,0.8,0.1)
-
-				GL.glBegin(GL.GL_LINE_LOOP)
-				GL.glVertex(*pt1)
-				GL.glVertex(*pt2)
-				GL.glVertex(*pt3)
-				GL.glVertex(*pt4)
-				GL.glEnd()
-
-				#print GLU.gluProject(*pt1)
-				#print GLU.gluProject(*pt2)
-				
-				GL.glEnable(GL.GL_DEPTH_TEST)
+			self.DrawDragBox(ev.proj)
 
 	def ClickUnitCheck(self, screenPos, worldPos, proj, screenSize):
 		#print "clickScreenPos", screenPos
@@ -223,4 +208,29 @@ class Gui(events.EventCallback):
 
 			GL.glPopMatrix()
 			GL.glEnable(GL.GL_DEPTH_TEST)
+
+	def DrawDragBox(self, proj):
+		for button in self.mouseDragBounds:
+			if button is None: continue
+			boxEv = self.mouseDragBounds[button]
+			if boxEv is None: continue
+			pt1w = boxEv[0].worldPos
+			pt2w = boxEv[1].worldPos
+			pt1 = proj.ProjDeg(pt1w[0], pt1w[1], pt1w[2])
+			pt2 = proj.ProjDeg(pt1w[0], pt2w[1], pt1w[2])
+			pt3 = proj.ProjDeg(pt2w[0], pt2w[1], pt2w[2])
+			pt4 = proj.ProjDeg(pt2w[0], pt1w[1], pt2w[2])
+
+			GL.glDisable(GL.GL_DEPTH_TEST)
+			GL.glColor3f(0.1,0.8,0.1)
+
+			GL.glBegin(GL.GL_LINE_LOOP)
+			GL.glVertex(*pt1)
+			GL.glVertex(*pt2)
+			GL.glVertex(*pt3)
+			GL.glVertex(*pt4)
+			GL.glEnd()
+
+			GL.glEnable(GL.GL_DEPTH_TEST)
+
 
