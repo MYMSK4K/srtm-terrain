@@ -17,6 +17,7 @@ class Gui(events.EventCallback):
 		self.faction = None
 		self.mouseDownEvents = {}
 		self.mouseDownStart = {}
+		self.mouseDragBounds = {}
 		#self.multiClickDriftTol = 5. #px
 		self.multiClickTimeout = .2 #sec
 		self.selectTolerance = 30. #px
@@ -57,17 +58,28 @@ class Gui(events.EventCallback):
 		if ev.type == "mousebuttonup":
 			#print ev.type
 			self.mouseDownStart[ev.button] = None
+			self.mouseDragBounds[ev.button] = None
 
 		if ev.type == "mousemotion":
 			pressed = False
 			for button in self.mouseDownStart:
-				if self.mouseDownStart[button] is not None: pressed = True
+				if self.mouseDownStart[button] is not None: 
+					pressed = True
+					self.mouseDragBounds[button] = [self.mouseDownStart[button], ev]
 
 			if not pressed: return
 			#Drag event
 
+
+
 		if ev.type == "drawselection":
 			self.DrawSelection(ev.proj)
+
+			for button in self.mouseDragBounds:
+				if button is None: continue
+				boxEv = self.mouseDragBounds[button]
+				if boxEv is None: continue
+				print boxEv[0].worldPos, boxEv[1].worldPos
 
 
 	def ClickUnitCheck(self, screenPos, worldPos, proj, screenSize):
