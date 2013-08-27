@@ -135,7 +135,6 @@ def run():
 	eventMediator.Send(addFaction)
 
 	player = gameobjs.Person(eventMediator)
-	player.playerId = guiMgr.playerId
 	player.faction = guiMgr.faction
 	player.SetPos((camLatLon[0], camLatLon[1], 0.))
 	gameObjects.Add(player)

@@ -8,6 +8,7 @@ class GameObjects(events.EventCallback):
 	def __init__(self, mediator):
 		super(GameObjects, self).__init__(mediator)
 		mediator.AddListener("getpos", self)
+		mediator.AddListener("getfaction", self)
 		mediator.AddListener("fireshell", self)
 		mediator.AddListener("detonate", self)
 		mediator.AddListener("targetdestroyed", self)
@@ -42,6 +43,11 @@ class GameObjects(events.EventCallback):
 			if event.objId not in self.objs:
 				raise Exception("Unknown object id")
 			return self.objs[event.objId].pos
+
+		if event.type == "getfaction":
+			if event.objId not in self.objs:
+				raise Exception("Unknown object id")
+			return self.objs[event.objId].faction
 
 		if event.type == "fireshell":
 			if self.verbose: print event.type
@@ -105,14 +111,11 @@ class GameObjects(events.EventCallback):
 		if event.type == "attackorder":
 			for objId in event.selection:
 				obj = self.objs[objId]
-				if obj.playerId != event.playerId: continue
 				obj.Attack(event.targetId)
 
 		if event.type == "moveorder":
-			print event.selection
 			for objId in event.selection:
 				obj = self.objs[objId]
-				if obj.playerId != event.playerId: continue
 				obj.MoveTo(event.pos)
 
 		if event.type == "stoporder":

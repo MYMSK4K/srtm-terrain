@@ -10,7 +10,7 @@ class GameObj(object):
 		self.mediator = mediator
 		self.objId = uuid.uuid4()
 		self.playerId = None
-		self.faction = 0
+		self.faction = None
 		self.pos = np.array((0., 0., 0.))
 
 	def Draw(self, objmgr):

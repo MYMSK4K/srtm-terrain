@@ -121,7 +121,13 @@ class Gui(events.EventCallback):
 		else:
 			moveOrder = events.Event("moveorder")
 			moveOrder.pos = (worldPos[0], worldPos[1], 0.)
-			moveOrder.selection = self.selection
+			playerSpecificSelection = []
+			for obj in self.selection:
+				factionReq = events.Event("getfaction") 
+				factionReq.objId = obj
+				if self.mediator.Send(factionReq)[0] != self.faction: continue
+				playerSpecificSelection.append(obj)
+			moveOrder.selection = playerSpecificSelection
 			moveOrder.playerId = self.playerId
 			self.mediator.Send(moveOrder)
 
@@ -133,7 +139,13 @@ class Gui(events.EventCallback):
 			attackOrder = events.Event("attackorder")
 			attackOrder.targetId = nearUnitId
 			attackOrder.playerId = self.playerId
-			attackOrder.selection = self.selection
+			playerSpecificSelection = []
+			for obj in self.selection:
+				factionReq = events.Event("getfaction") 
+				factionReq.objId = obj
+				if self.mediator.Send(factionReq)[0] != self.faction: continue
+				playerSpecificSelection.append(obj)
+			attackOrder.selection = playerSpecificSelection
 			self.mediator.Send(attackOrder)
 
 	def DrawSelection(self, proj):
