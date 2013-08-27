@@ -1,6 +1,7 @@
 
 import events, math
 import OpenGL.GLU as GLU
+import OpenGL.GL as GL
 import numpy as np
 
 class Gui(events.EventCallback):
@@ -143,5 +144,39 @@ class Gui(events.EventCallback):
 			assert len(getPosRet) == 1
 			unitPos = getPosRet[0]
 			
-			print "selection", objId, unitPos
+			#print "selection", objId, unitPos
+
+			boxHalfWidth = proj.ScaleDistance(1.5)
+			boxTick = proj.ScaleDistance(.3)
+
+			GL.glPushMatrix()
+			GL.glColor3f(0.1,0.8,0.1)
+
+			proj.TransformToLocalCoords(*unitPos)
+
+			GL.glBegin(GL.GL_LINE_STRIP)
+			GL.glVertex(boxHalfWidth-boxTick, boxHalfWidth, 0.)
+			GL.glVertex(boxHalfWidth, boxHalfWidth, 0.)
+			GL.glVertex(boxHalfWidth, boxHalfWidth-boxTick, 0.)
+			GL.glEnd()
+
+			GL.glBegin(GL.GL_LINE_STRIP)
+			GL.glVertex(-boxHalfWidth+boxTick, -boxHalfWidth, 0.)
+			GL.glVertex(-boxHalfWidth, -boxHalfWidth, 0.)
+			GL.glVertex(-boxHalfWidth, -boxHalfWidth+boxTick, 0.)
+			GL.glEnd()
+
+			GL.glBegin(GL.GL_LINE_STRIP)
+			GL.glVertex(boxHalfWidth-boxTick, -boxHalfWidth, 0.)
+			GL.glVertex(boxHalfWidth, -boxHalfWidth, 0.)
+			GL.glVertex(boxHalfWidth, -boxHalfWidth+boxTick, 0.)
+			GL.glEnd()
+
+			GL.glBegin(GL.GL_LINE_STRIP)
+			GL.glVertex(-boxHalfWidth+boxTick, boxHalfWidth, 0.)
+			GL.glVertex(-boxHalfWidth, boxHalfWidth, 0.)
+			GL.glVertex(-boxHalfWidth, boxHalfWidth-boxTick, 0.)
+			GL.glEnd()
+
+			GL.glPopMatrix()
 
