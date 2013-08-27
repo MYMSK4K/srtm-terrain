@@ -181,6 +181,7 @@ def run():
 				mouseEvent.screenPos = event.pos
 				mouseEvent.worldPos = (clickLat, clickLon, latLonR[2])
 				mouseEvent.button = event.button
+				mouseEvent.screenSize = SCREEN_SIZE
 				mouseEvent.proj = proj
 				mouseEvent.time = pygame.time.get_ticks() / 1000.
 				eventMediator.Send(mouseEvent)
@@ -190,6 +191,7 @@ def run():
 				mouseEvent.screenPos = event.pos
 				mouseEvent.worldPos = (clickLat, clickLon, latLonR[2])
 				mouseEvent.button = event.button
+				mouseEvent.screenSize = SCREEN_SIZE
 				mouseEvent.proj = proj
 				mouseEvent.time = pygame.time.get_ticks() / 1000.
 				eventMediator.Send(mouseEvent)
@@ -199,6 +201,7 @@ def run():
 				mouseEvent = events.Event("mousemotion")
 				mouseEvent.screenPos = event.pos
 				mouseEvent.worldPos = (clickLat, clickLon, latLonR[2])
+				mouseEvent.screenSize = SCREEN_SIZE
 				mouseEvent.proj = proj
 				mouseEvent.time = pygame.time.get_ticks() / 1000.
 				eventMediator.Send(mouseEvent)
