@@ -10,12 +10,16 @@ class Gui(events.EventCallback):
 		mediator.AddListener("mousebuttonup", self)
 		mediator.AddListener("mousemotion", self)
 		mediator.AddListener("mousedowntimeout", self)
+		mediator.AddListener("drawselection", self)
+
 		self.playerId = None
 		self.faction = None
 		self.mouseDownEvents = {}
 		self.mouseDownStart = {}
 		#self.multiClickDriftTol = 5. #px
 		self.multiClickTimeout = .2 #sec
+		self.selectTolerance = 30. #px
+		self.selection = []
 
 	def ProcessEvent(self, ev):
 		#print event.type
@@ -50,7 +54,7 @@ class Gui(events.EventCallback):
 			self.mouseDownEvents[ev.button] = []
 
 		if ev.type == "mousebuttonup":
-			print ev.type
+			#print ev.type
 			self.mouseDownStart[ev.button] = None
 
 		if ev.type == "mousemotion":
@@ -60,6 +64,9 @@ class Gui(events.EventCallback):
 
 			if not pressed: return
 			#Drag event
+
+		if ev.type == "drawselection":
+			self.DrawSelection(ev.proj)
 
 
 	def ClickUnitCheck(self, screenPos, worldPos, proj, screenSize):
@@ -102,31 +109,39 @@ class Gui(events.EventCallback):
 
 		return bestUuid, bestDist, screenDist
 
-			
 	def SingleLeftClick(self, screenPos, worldPos, screenSize, proj):
 
-		print self.ClickUnitCheck(screenPos, worldPos, proj, screenSize)
+		nearUnitId, nearUnitDistW, nearUnitDistS = self.ClickUnitCheck(screenPos, worldPos, proj, screenSize)
 
-		moveOrder = events.Event("moveorder")
-		moveOrder.pos = (worldPos[0], worldPos[1], 0.)
-		moveOrder.playerId = self.playerId
-		self.mediator.Send(moveOrder)
+		if nearUnitDistS < self.selectTolerance:
+			#Select unit
+			self.selection = []
+			self.selection.append(nearUnitId)
+			print "selection changed"
+		else:
+			moveOrder = events.Event("moveorder")
+			moveOrder.pos = (worldPos[0], worldPos[1], 0.)
+			moveOrder.playerId = self.playerId
+			self.mediator.Send(moveOrder)
 
 	def SingleRightClick(self, screenPos, worldPos, screenSize, proj):
-		getNearby = events.Event("getNearbyUnits")
-		getNearby.pos = worldPos
-		getNearby.notFaction = self.faction
-		nearbyRet = self.mediator.Send(getNearby)
-		bestUuid, bestDist = None, None
-		for ret in nearbyRet:
-			if ret is None: continue
-			assert len(ret) == 2
-			bestUuid, bestDist = ret
-		if bestUuid is None: return
-		if bestDist > 5.: return
+
+		nearUnitId, nearUnitDistW, nearUnitDistS = self.ClickUnitCheck(screenPos, worldPos, proj, screenSize)
 
 		attackOrder = events.Event("attackorder")
 		attackOrder.targetId = bestUuid
 		attackOrder.playerId = self.playerId
 		self.mediator.Send(attackOrder)
+
+	def DrawSelection(self, proj):
+
+		for objId in self.selection:
+			
+			getPos = events.Event("getpos")
+			getPos.objId = objId
+			getPosRet = self.mediator.Send(getPos)
+			assert len(getPosRet) == 1
+			unitPos = getPosRet[0]
+			
+			print "selection", objId, unitPos
 

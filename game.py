@@ -253,6 +253,10 @@ def run():
 		drawObjectsEv.proj = proj
 		eventMediator.Send(drawObjectsEv)
 
+		drawObjectsEv = events.Event("drawselection")
+		drawObjectsEv.proj = proj
+		eventMediator.Send(drawObjectsEv)
+
 		# Show the screen
 		pygame.display.flip()
 
