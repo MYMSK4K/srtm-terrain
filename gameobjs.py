@@ -28,7 +28,7 @@ class GameObj(object):
 	def GetAttackTarget(self):
 		return None
 
-	def MoveTo(self, pos):
+	def MoveTo(self, pos, proj):
 		pass
 
 	def Attack(self, uuid):
@@ -98,9 +98,13 @@ class Person(GameObj):
 
 		GL.glPopMatrix()
 
-	def MoveTo(self, pos):
+	def MoveTo(self, pos, proj):
 		self.moveOrder = np.array(pos)
 		self.attackOrder = None
+		posEv = events.Event("physicssettargetpos")
+		posEv.pos = proj.ProjDeg(*pos)
+		posEv.objId = self.objId
+		self.mediator.Send(posEv)
 
 	def Attack(self, uuid):
 		self.attackOrder = uuid

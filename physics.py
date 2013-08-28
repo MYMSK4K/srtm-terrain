@@ -9,13 +9,13 @@ class Physics(events.EventCallback):
 
 		mediator.AddListener("physicscreateperson", self)
 		mediator.AddListener("physicssetpos", self)
+		mediator.AddListener("physicssettargetpos", self)
 
 		self.proj = None
 		self.planetCentre = None
 		self.reportedPos = {}
 
 		self.world = ode.World()
-		#self.world.setGravity( (0,-9.81,0) )
 		self.world.setERP(0.8)
 		self.world.setCFM(1E-5)
 
@@ -49,7 +49,7 @@ class Physics(events.EventCallback):
 		geom = ode.GeomSphere(self.space, radius)
 		geom.setBody(body)
 
-		self.objs[objId] = (body, geom)
+		self.objs[objId] = [body, geom, None]
 
 		return objId
 
@@ -57,7 +57,7 @@ class Physics(events.EventCallback):
 
 		# Calculate gravity
 		for objId in self.objs:
-			body, geom = self.objs[objId]
+			body, geom, targetPos = self.objs[objId]
 			pos = body.getPosition()
 			
 			vecFromCentre = self.planetCentre - pos
@@ -69,10 +69,11 @@ class Physics(events.EventCallback):
 
 		#Add motor forces
 		for objId in self.objs:
-			body, geom = self.objs[objId]
+			body, geom, targetPos = self.objs[objId]
+			if targetPos is None: continue
 			pos = body.getPosition()
 			
-			vec = self.proj.ProjDeg(53.93025, 27.3777, 0.) - pos
+			vec = targetPos - pos
 			dist = np.linalg.norm(vec, ord=2)
 			if dist > 0.:
 				vec /= dist
@@ -93,7 +94,7 @@ class Physics(events.EventCallback):
 
 		# Generate events if object has moved
 		for objId in self.objs:
-			body, geom = self.objs[objId]
+			body, geom, targetPos = self.objs[objId]
 			pos = body.getPosition()
 			if objId not in self.reportedPos:
 				#Position not previously reported
@@ -142,6 +143,11 @@ class Physics(events.EventCallback):
 			#print event.type, event.pos
 			obj = self.objs[event.objId]
 			obj[0].setPosition(event.pos)
+			return
+
+		if event.type == "physicssettargetpos":
+			obj = self.objs[event.objId]
+			obj[2] = np.array(event.pos)
 			return
 
 		print event.type

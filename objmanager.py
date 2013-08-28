@@ -120,7 +120,7 @@ class GameObjects(events.EventCallback):
 		if event.type == "moveorder":
 			for objId in event.selection:
 				obj = self.objs[objId]
-				obj.MoveTo(event.pos)
+				obj.MoveTo(event.pos, self.proj)
 
 		if event.type == "stoporder":
 			if self.verbose: print event.type
