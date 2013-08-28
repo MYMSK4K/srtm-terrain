@@ -65,7 +65,7 @@ class Physics(events.EventCallback):
 			if dist > 0.:
 				vecFromCentre /= dist
 
-			body.addForce(vecFromCentre * body.getMass().mass)
+			body.addForce(vecFromCentre * body.getMass().mass * 0.00981)
 
 		# Detect collisions and create contact joints
 		self.space.collide(self, self.NearCallback)
