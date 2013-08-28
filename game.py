@@ -137,9 +137,13 @@ def run():
 	terrainMgr = terrain.Terrain(eventMediator)
 	terrainMgr.proj = proj
 
+	#Get player faction id
+	factionReq = events.Event("getplayerfactionid")
+	playerFactionId = eventMediator.Send(factionReq)[0]
+
 	guiMgr = gui.Gui(eventMediator)
 	guiMgr.playerId = uuid.uuid4()
-	guiMgr.faction = scriptObj.friendlyFaction #This probably should be an event
+	guiMgr.faction = playerFactionId
 
 	startEvent = events.Event("gamestart")
 	eventMediator.Send(startEvent)

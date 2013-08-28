@@ -16,6 +16,7 @@ class Script(events.EventCallback):
 		mediator.AddListener("stoporder", self)
 		mediator.AddListener("enterarea", self)
 		mediator.AddListener("exitarea", self)
+		mediator.AddListener("getplayerfactionid", self)
 	
 		self.enemyId = None
 		self.enemyFaction = uuid.uuid4()
@@ -72,4 +73,7 @@ class Script(events.EventCallback):
 				au2 = events.Event("setmission")
 				au2.text = "Destroy unit at "+str(au.pos)
 				self.mediator.Send(au2)
+
+		if event.type == "getplayerfactionid":
+			return self.friendlyFaction
 
