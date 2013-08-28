@@ -142,7 +142,7 @@ class Gui(events.EventCallback):
 				if faction != self.faction: continue
 
 				offsetDestCart = pos + est * proj.ScaleDistance(5.) * count
-				offsetWorld = list(proj.UnProgDeg(*offsetDestCart))
+				offsetWorld = list(proj.UnProjDeg(*offsetDestCart))
 				offsetWorld[2] = 0. #Force to ground level
 
 				moveOrder = events.Event("moveorder")

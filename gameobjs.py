@@ -38,6 +38,10 @@ class GameObj(object):
 		assert(len(posIn)==3)
 		self.pos = np.array(posIn)
 
+	def UpdatePos(self, posIn):
+		assert(len(posIn)==3)
+		self.pos = np.array(posIn)
+
 class Person(GameObj):
 	def __init__(self, mediator):
 		super(Person, self).__init__(mediator)
@@ -53,14 +57,15 @@ class Person(GameObj):
 		self.radius = 1.
 
 		createBodyEv = events.Event("physicscreateperson")
-		self.physicsObj = mediator.Send(createBodyEv)[0]
+		createBodyEv.objId = self.objId
+		mediator.Send(createBodyEv)
 
 	def SetPos(self, posIn, proj):
 		assert(len(posIn)==3)
 		self.pos = np.array(posIn)
 
 		setPosEv = events.Event("physicssetpos")
-		setPosEv.objId = self.physicsObj
+		setPosEv.objId = self.objId
 		setPosEv.pos = proj.ProjDeg(*posIn)
 		self.mediator.Send(setPosEv)
 
@@ -121,13 +126,7 @@ class Person(GameObj):
 				moveTowards = getEnemyPos
 
 		if moveTowards is not None:
-			if dirMag < timeElapsed * self.speed:
-				self.SetPos(self.moveOrder.copy(), objmgr.proj)
-				self.moveOrder = None
-			else:
-				newPos = objmgr.proj.OffsetTowardsPoint(self.pos, moveTowards, self.speed * timeElapsed)
-				newPos[2] = 0. #Fix items to surface of world
-				self.SetPos(newPos, objmgr.proj)
+			pass
 
 		if self.attackOrder is not None:			
 			if dirMag <= self.attackRange:

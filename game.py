@@ -139,8 +139,9 @@ def run():
 		
 		eventMediator.Update(pygame.time.get_ticks() / 1000.)
 
-		gameObjects.Update(time_passed_seconds, pygame.time.get_ticks() / 1000.)
+		gameObjects.MergeNewObjects()
 		physicsMgr.Update(time_passed_seconds, pygame.time.get_ticks() / 1000.)
+		gameObjects.Update(time_passed_seconds, pygame.time.get_ticks() / 1000.)
 
 		# Clear the screen, and z-buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)

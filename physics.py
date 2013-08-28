@@ -1,6 +1,6 @@
 
 import events, time, projfunc
-import ode, uuid
+import ode
 import numpy as np
 
 class Physics(events.EventCallback):
@@ -12,6 +12,7 @@ class Physics(events.EventCallback):
 
 		self.proj = None
 		self.planetCentre = None
+		self.reportedPos = {}
 
 		self.world = ode.World()
 		#self.world.setGravity( (0,-9.81,0) )
@@ -32,11 +33,10 @@ class Physics(events.EventCallback):
 		self.planet = ode.GeomSphere(self.space, self.proj.radius)
 		self.planet.setPosition(self.planetCentre)
 
-	def AddSphere(self, pos):
+	def AddSphere(self, pos, objId):
 
-		bodyId = uuid.uuid4()
 		radius = 0.001
-		density = 1.
+		density = 1.e9
 
 		# Create body
 		body = ode.Body(self.world)
@@ -49,9 +49,9 @@ class Physics(events.EventCallback):
 		geom = ode.GeomSphere(self.space, radius)
 		geom.setBody(body)
 
-		self.objs[bodyId] = (body, geom)
+		self.objs[objId] = (body, geom)
 
-		return bodyId
+		return objId
 
 	def Update(self, timeElapsed, timeNow):
 
@@ -67,6 +67,19 @@ class Physics(events.EventCallback):
 
 			body.addForce(vecFromCentre * body.getMass().mass * 0.00981)
 
+		#Add motor forces
+		for objId in self.objs:
+			body, geom = self.objs[objId]
+			pos = body.getPosition()
+			
+			vec = self.proj.ProjDeg(53.93025, 27.3777, 0.) - pos
+			dist = np.linalg.norm(vec, ord=2)
+			if dist > 0.:
+				vec /= dist
+
+			fo = vec * body.getMass().mass * 0.001
+			body.addForce(fo)
+
 		# Detect collisions and create contact joints
 		self.space.collide(self, self.NearCallback)
 
@@ -76,6 +89,33 @@ class Physics(events.EventCallback):
 		# Remove all contact joints
 		self.contactgroup.empty()
 
+		#FIXME remove unused data in self.prevPosLi?
+
+		# Generate events if object has moved
+		for objId in self.objs:
+			body, geom = self.objs[objId]
+			pos = body.getPosition()
+			if objId not in self.reportedPos:
+				#Position not previously reported
+				posUpdateEv = events.Event("physicsposupdate")
+				posUpdateEv.pos = pos
+				posUpdateEv.objId = objId
+				self.mediator.Send(posUpdateEv)
+
+				self.reportedPos[objId] = pos
+			else:
+				prevPos = self.reportedPos[objId]
+				moveDist = np.linalg.norm(np.array(prevPos) - pos, ord=2)
+
+				if moveDist > 0.00001:
+					#Position has changed enough to report it
+					posUpdateEv = events.Event("physicsposupdate")
+					posUpdateEv.pos = pos
+					posUpdateEv.objId = objId
+					self.mediator.Send(posUpdateEv)
+
+					self.reportedPos[objId] = pos
+				
 		#for i, obj in enumerate(self.objs):
 		#	print i, timeElapsed, self.objs[obj][0].getPosition()
 
@@ -85,6 +125,9 @@ class Physics(events.EventCallback):
 
 		# Create contact joints
 		for c in contacts:
+			#pos, normal, depth, geom1, geom2 = c.getContactGeomParams()
+			#if depth == 0: continue
+			
 			c.setBounce(0.2)
 			c.setMu(5000)
 			j = ode.ContactJoint(self.world, self.contactgroup, c)
@@ -92,8 +135,8 @@ class Physics(events.EventCallback):
 
 	def ProcessEvent(self, event):
 		if event.type == "physicscreateperson":
-			objId = self.AddSphere(self.proj.ProjDeg(0.,0.,0.))
-			return objId
+			self.AddSphere(self.proj.ProjDeg(0.,0.,0.), event.objId)
+			return
 
 		if event.type == "physicssetpos":
 			#print event.type, event.pos

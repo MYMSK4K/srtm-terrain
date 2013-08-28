@@ -30,7 +30,7 @@ class ProjFunc:
 		alt = R - self.radius
 		return lat, lon, alt * self.scale
 
-	def UnProgDeg(self, x, y, z):
+	def UnProjDeg(self, x, y, z):
 		radWorld = self.UnProj(x, y, z)
 		return math.degrees(radWorld[0]), math.degrees(radWorld[1]), radWorld[2]
 

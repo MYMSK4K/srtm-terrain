@@ -29,6 +29,8 @@ class GameObjects(events.EventCallback):
 		mediator.AddListener("drawObjects", self)
 		mediator.AddListener("addfactioncolour", self)
 
+		mediator.AddListener("physicsposupdate", self)
+
 		self.objs = {}
 		self.newObjs = [] #Add these to main object dict after iteration
 		self.objsToRemove = [] #Remove these after current iteration
@@ -159,14 +161,22 @@ class GameObjects(events.EventCallback):
 		if event.type == "addfactioncolour":
 			self.AddFactionColour(event.faction, event.colour)
 
-	def Update(self, timeElapsed, timeNow):
-		for objId in self.objs:
-			self.objs[objId].Update(timeElapsed, timeNow, self)
+		if event.type == "physicsposupdate":
+			#print event.type
+			latLon = self.proj.UnProjDeg(*event.pos)
+			obj = self.objs[event.objId]
+			obj.UpdatePos(latLon)
 
+	def MergeNewObjects(self):
 		#Update list of objects with new items
 		for obj in self.newObjs:
 			self.objs[obj.objId] = obj
 		self.newObjs = []
+
+	def Update(self, timeElapsed, timeNow):
+		#for objId in self.objs:
+		#	self.objs[objId].Update(timeElapsed, timeNow, self)
+		self.MergeNewObjects()
 
 		#Remove objects that are due to be deleted
 		for objId in self.objsToRemove:
