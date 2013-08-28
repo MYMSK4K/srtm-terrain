@@ -76,8 +76,8 @@ class Physics(events.EventCallback):
 		# Remove all contact joints
 		self.contactgroup.empty()
 
-		for i, obj in enumerate(self.objs):
-			print i, timeElapsed, self.objs[obj][0].getPosition()
+		#for i, obj in enumerate(self.objs):
+		#	print i, timeElapsed, self.objs[obj][0].getPosition()
 
 		if len(self.objs)==0:
 			pos = self.proj.ProjDeg(54., 27., 2.)
