@@ -1,13 +1,17 @@
 
-import events, time
+import events, time, projfunc
 import ode, uuid
+import numpy as np
 
 class Physics(events.EventCallback):
 	def __init__(self, mediator):
 		super(Physics, self).__init__(mediator)
 
+		self.proj = None
+		self.planetCentre = None
+
 		self.world = ode.World()
-		self.world.setGravity( (0,-9.81,0) )
+		#self.world.setGravity( (0,-9.81,0) )
 		self.world.setERP(0.8)
 		self.world.setCFM(1E-5)
 
@@ -21,12 +25,17 @@ class Physics(events.EventCallback):
 		self.contactgroup = ode.JointGroup()
 
 		# Create a plane geom which prevent the objects from falling forever
-		self.floor = ode.GeomPlane(self.space, (0,1,0), 0)
+		#self.floor = ode.GeomPlane(self.space, (0,1,0), 0)
+
+	def AddPlanet(self):
+		self.planetCentre = np.array(self.proj.Proj(0., 0., self.proj.UnscaleDistance(-self.proj.radius)))
+		self.planet = ode.GeomSphere(self.space, self.proj.radius)
+		self.planet.setPosition(self.planetCentre)
 
 	def AddSphere(self, pos):
 
 		bodyId = uuid.uuid4()
-		radius = 1.
+		radius = 0.001
 		density = 1.
 
 		# Create body
@@ -46,6 +55,18 @@ class Physics(events.EventCallback):
 
 	def Update(self, timeElapsed, timeNow):
 
+		# Calculate gravity
+		for objId in self.objs:
+			body, geom = self.objs[objId]
+			pos = body.getPosition()
+			
+			vecFromCentre = self.planetCentre - pos
+			dist = np.linalg.norm(vecFromCentre, ord=2)
+			if dist > 0.:
+				vecFromCentre /= dist
+
+			body.addForce(vecFromCentre * body.getMass().mass)
+
 		# Detect collisions and create contact joints
 		self.space.collide(self, self.NearCallback)
 
@@ -55,11 +76,15 @@ class Physics(events.EventCallback):
 		# Remove all contact joints
 		self.contactgroup.empty()
 
-		for obj in self.objs:
-			print timeElapsed, self.objs[obj][0].getPosition()
+		for i, obj in enumerate(self.objs):
+			print i, timeElapsed, self.objs[obj][0].getPosition()
 
 		if len(self.objs)==0:
-			self.AddSphere((0.,2.,0.))
+			pos = self.proj.ProjDeg(54., 27., 2.)
+			self.AddSphere(pos)
+
+			vecFromCentre = self.planetCentre - pos
+			dist = np.linalg.norm(vecFromCentre, ord=2)
 
 	def NearCallback(self, args, geom1, geom2):
 		# Check if the objaects do collide
@@ -75,6 +100,8 @@ class Physics(events.EventCallback):
 
 if __name__ == "__main__":
 	p = Physics(None)
+	p.proj = projfunc.ProjFunc()
+	p.AddPlanet()
 
 	while(1):
 		p.Update(0.01,0.)

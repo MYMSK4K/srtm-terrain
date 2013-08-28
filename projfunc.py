@@ -8,7 +8,7 @@ class ProjFunc:
 		self.radius = 6371.
 		self.scale = 1000.
 		self.glOrigin = (0., 0., 0.)
-		self.glOrigin = self.Proj(math.radians(54.0), math.radians(27.0), 0.)
+		self.glOrigin = self.ProjDeg(54., 27., 0.)
 
 	def Proj(self, lat, lon, alt):
 
@@ -68,6 +68,9 @@ class ProjFunc:
 
 	def ScaleDistance(self, dist):
 		return dist / self.scale
+
+	def UnscaleDistance(self, dist):
+		return dist * self.scale
 
 	def OffsetTowardsPoint(self, oriPt, towardPt, dist):
 		pt1 = self.Proj(math.radians(oriPt[0]), math.radians(oriPt[1]), oriPt[2])
