@@ -59,6 +59,8 @@ def run():
 	terrainMgr = terrain.Terrain(eventMediator)
 	terrainMgr.proj = proj
 	physicsMgr = physics.Physics(eventMediator)
+	physicsMgr.proj = proj
+	physicsMgr.AddPlanet()
 
 	#Get player faction id
 	factionReq = events.Event("getplayerfactionid")

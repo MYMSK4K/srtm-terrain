@@ -133,14 +133,14 @@ class GameObjects(events.EventCallback):
 			if self.verbose: print event.type
 			enemy = gameobjs.Person(self.mediator)
 			enemy.faction = event.faction
-			enemy.SetPos(np.array((event.pos[0], event.pos[1], 0.)))
+			enemy.SetPos(np.array((event.pos[0], event.pos[1], 0.)), self.proj)
 			self.newObjs.append(enemy)
 			return enemy.objId
 
 		if event.type == "addarea":
 			if self.verbose: print event.type
 			area = gameobjs.AreaObjective(self.mediator)
-			area.SetPos(np.array((event.pos[0], event.pos[1], 0.)))
+			area.SetPos(np.array((event.pos[0], event.pos[1], 0.)), self.proj)
 			self.newObjs.append(area)
 			return area.objId
 

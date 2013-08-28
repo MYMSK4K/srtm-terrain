@@ -34,7 +34,7 @@ class GameObj(object):
 	def Attack(self, uuid):
 		pass
 
-	def SetPos(self, posIn):
+	def SetPos(self, posIn, proj):
 		assert(len(posIn)==3)
 		self.pos = np.array(posIn)
 
@@ -51,6 +51,18 @@ class Person(GameObj):
 		self.firePeriod = 1.
 		self.health = 1.
 		self.radius = 1.
+
+		createBodyEv = events.Event("physicscreateperson")
+		self.physicsObj = mediator.Send(createBodyEv)[0]
+
+	def SetPos(self, posIn, proj):
+		assert(len(posIn)==3)
+		self.pos = np.array(posIn)
+
+		setPosEv = events.Event("physicssetpos")
+		setPosEv.objId = self.physicsObj
+		setPosEv.pos = proj.ProjDeg(*posIn)
+		self.mediator.Send(setPosEv)
 
 	def Draw(self, objmgr):
 
@@ -110,12 +122,12 @@ class Person(GameObj):
 
 		if moveTowards is not None:
 			if dirMag < timeElapsed * self.speed:
-				self.SetPos(self.moveOrder.copy())
+				self.SetPos(self.moveOrder.copy(), objmgr.proj)
 				self.moveOrder = None
 			else:
 				newPos = objmgr.proj.OffsetTowardsPoint(self.pos, moveTowards, self.speed * timeElapsed)
 				newPos[2] = 0. #Fix items to surface of world
-				self.SetPos(newPos)
+				self.SetPos(newPos, objmgr.proj)
 
 		if self.attackOrder is not None:			
 			if dirMag <= self.attackRange:
@@ -178,7 +190,7 @@ class Shell(GameObj):
 			self.targetPos[0], self.targetPos[1], self.targetPos[2])
 
 		if dirMag < timeElapsed * self.speed:
-			self.SetPos(self.targetPos.copy())
+			self.SetPos(self.targetPos.copy(), objmgr.proj)
 			detonateEvent = events.Event("detonate")
 			detonateEvent.pos = self.pos.copy()
 			detonateEvent.objId = self.objId
@@ -189,7 +201,7 @@ class Shell(GameObj):
 		else:
 			newPos = objmgr.proj.OffsetTowardsPoint(self.pos, self.targetPos, self.speed * timeElapsed)
 			newPos[2] = 0. #Fix items to surface of world
-			self.SetPos(newPos)
+			self.SetPos(newPos, objmgr.proj)
 
 	def GetHealth(self):
 		return 1.
