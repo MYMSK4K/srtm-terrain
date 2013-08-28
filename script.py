@@ -16,16 +16,33 @@ class Script(events.EventCallback):
 		mediator.AddListener("stoporder", self)
 		mediator.AddListener("enterarea", self)
 		mediator.AddListener("exitarea", self)
-		mediator.AddListener("addplayer", self)
 	
 		self.enemyId = None
 		self.enemyFaction = uuid.uuid4()
+		self.friendlyFaction = uuid.uuid4()
 
 	def ProcessEvent(self, event):
 		print event.type
 
 		if event.type == "gamestart":
 
+			#Add friendlies
+			addFaction = events.Event("addfactioncolour")
+			addFaction.faction = self.friendlyFaction
+			addFaction.colour = (1., 0., 0.)
+			self.mediator.Send(addFaction)
+
+			event = events.Event("addunit")
+			event.faction = self.friendlyFaction
+			event.pos = (53.93015, 27.37785, 0.)
+			self.mediator.Send(event)[0]
+
+			event = events.Event("addunit")
+			event.faction = self.friendlyFaction
+			event.pos = (53.93015+0.0001, 27.37785+0.00005, 0.)
+			self.mediator.Send(event)[0]
+
+			#Add enemies
 			addFaction = events.Event("addfactioncolour")
 			addFaction.faction = self.enemyFaction
 			addFaction.colour = (0., 0., 1.)

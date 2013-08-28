@@ -139,26 +139,7 @@ def run():
 
 	guiMgr = gui.Gui(eventMediator)
 	guiMgr.playerId = uuid.uuid4()
-	guiMgr.faction = uuid.uuid4()
-
-	addFaction = events.Event("addfactioncolour")
-	addFaction.faction = guiMgr.faction
-	addFaction.colour = (1., 0., 0.)
-	eventMediator.Send(addFaction)
-
-	player = gameobjs.Person(eventMediator)
-	player.faction = guiMgr.faction
-	player.SetPos((camLatLon[0], camLatLon[1], 0.))
-	gameObjects.Add(player)
-
-	player = gameobjs.Person(eventMediator)
-	player.faction = guiMgr.faction
-	player.SetPos((camLatLon[0]+0.0001, camLatLon[1]+0.00005, 0.))
-	gameObjects.Add(player)
-
-	addPlayerEvent = events.Event("addplayer")
-	addPlayerEvent.playerId = player.playerId
-	eventMediator.Send(addPlayerEvent)
+	guiMgr.faction = scriptObj.friendlyFaction #This probably should be an event
 
 	startEvent = events.Event("gamestart")
 	eventMediator.Send(startEvent)
