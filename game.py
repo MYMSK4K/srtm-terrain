@@ -1,7 +1,7 @@
 
 SCREEN_SIZE = (800, 600)
 
-import math, uuid, events, script, gameobjs, objmanager, terrain, gui, projfunc
+import math, uuid, events, script, gameobjs, objmanager, terrain, gui, projfunc, physics
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -58,6 +58,7 @@ def run():
 	gameObjects.proj = proj
 	terrainMgr = terrain.Terrain(eventMediator)
 	terrainMgr.proj = proj
+	physicsMgr = physics.Physics(eventMediator)
 
 	#Get player faction id
 	factionReq = events.Event("getplayerfactionid")
