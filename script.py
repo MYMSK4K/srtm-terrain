@@ -65,7 +65,7 @@ class Script(events.EventCallback):
 			print "by playerId", event.playerId
 			if self.enemyId == event.objId:
 				au = events.Event("addunit")
-				au.pos = (random.random() * 30. - 15., random.random() * 30. - 15.)
+				au.pos = (53.93015+random.random() * 0.001 - 0.0005, 27.37785+random.random() * 0.001 - 0.0005)
 				au.faction = self.enemyFaction
 				self.enemyId = self.mediator.Send(au)[0]
 
