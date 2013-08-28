@@ -129,18 +129,29 @@ class Gui(events.EventCallback):
 			#Select unit
 			self.selection = []
 			self.selection.append(nearUnitId)
+
 		else:
+			#Order move
+			pos, nth, est, up = proj.GetLocalDirectionVecs(*worldPos)
+			count = 0
+
 			for obj in self.selection:
 				factionReq = events.Event("getfaction") 
 				factionReq.objId = obj
 				faction = self.mediator.Send(factionReq)[0]
 				if faction != self.faction: continue
 
+				offsetDestCart = pos + est * proj.ScaleDistance(5.) * count
+				offsetWorld = list(proj.UnProgDeg(*offsetDestCart))
+				offsetWorld[2] = 0. #Force to ground level
+
 				moveOrder = events.Event("moveorder")
-				moveOrder.pos = (worldPos[0], worldPos[1], 0.)		
+				moveOrder.pos = offsetWorld
 				moveOrder.selection = [obj]
 				moveOrder.playerId = self.playerId
 				self.mediator.Send(moveOrder)
+
+				count += 1
 
 	def SingleRightClick(self, screenPos, worldPos, screenSize, proj):
 
@@ -210,7 +221,6 @@ class Gui(events.EventCallback):
 			GL.glVertex(-boxHalfWidth, boxHalfWidth, 0.)
 			GL.glVertex(-boxHalfWidth, boxHalfWidth-boxTick, 0.)
 			GL.glEnd()
-
 
 			GL.glPopMatrix()
 			GL.glEnable(GL.GL_DEPTH_TEST)

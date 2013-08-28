@@ -59,10 +59,14 @@ class ProjFunc:
 		alt = R - self.radius
 		return lat, lon, alt * self.scale
 
-	def TransformToLocalCoords(self, lat, lon, alt):
-		pos = self.Proj(math.radians(lat), math.radians(lon), alt)
-		posUp = self.Proj(math.radians(lat), math.radians(lon), alt + 1. * self.scale)
-		posEst = self.Proj(math.radians(lat), math.radians(lon+0.005), alt)
+	def UnProgDeg(self, x, y, z):
+		radWorld = self.UnProj(x, y, z)
+		return math.degrees(radWorld[0]), math.degrees(radWorld[1]), radWorld[2]
+
+	def GetLocalDirectionVecs(self, lat, lon, alt):
+		pos = self.ProjDeg(lat, lon, alt)
+		posUp = self.ProjDeg(lat, lon, alt + 10000. / self.scale)
+		posEst = self.ProjDeg(lat, lon+0.005, alt)
 
 		up = np.array(posUp) - np.array(pos)
 		upMag = np.linalg.norm(up, ord=2)
@@ -75,6 +79,10 @@ class ProjFunc:
 			est /= estMag
 
 		nth = np.cross(up, est)
+		return pos, nth, est, up
+
+	def TransformToLocalCoords(self, lat, lon, alt):
+		pos, nth, est, up = self.GetLocalDirectionVecs(lat, lon, alt)
 
 		m = np.concatenate((est, [0.], nth, [0.], up, [0., 0., 0., 0., 1.]))
 
@@ -100,6 +108,7 @@ class ProjFunc:
 		offsetCart = (direction * dist / self.scale) + pt1
 		outRad = self.UnProj(offsetCart[0], offsetCart[1], offsetCart[2])
 		return np.array((math.degrees(outRad[0]), math.degrees(outRad[1]), outRad[2]))
+
 
 ### Main Program
 
