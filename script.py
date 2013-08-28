@@ -35,7 +35,7 @@ class Script(events.EventCallback):
 
 			event = events.Event("addunit")
 			event.faction = self.friendlyFaction
-			event.pos = (53.93015, 27.37785, 0.)
+			event.pos = (53.9302, 27.37785, 0.)
 			self.mediator.Send(event)[0]
 
 			event = events.Event("addunit")
