@@ -130,17 +130,17 @@ class Gui(events.EventCallback):
 			self.selection = []
 			self.selection.append(nearUnitId)
 		else:
-			moveOrder = events.Event("moveorder")
-			moveOrder.pos = (worldPos[0], worldPos[1], 0.)
-			playerSpecificSelection = []
 			for obj in self.selection:
 				factionReq = events.Event("getfaction") 
 				factionReq.objId = obj
-				if self.mediator.Send(factionReq)[0] != self.faction: continue
-				playerSpecificSelection.append(obj)
-			moveOrder.selection = playerSpecificSelection
-			moveOrder.playerId = self.playerId
-			self.mediator.Send(moveOrder)
+				faction = self.mediator.Send(factionReq)[0]
+				if faction != self.faction: continue
+
+				moveOrder = events.Event("moveorder")
+				moveOrder.pos = (worldPos[0], worldPos[1], 0.)		
+				moveOrder.selection = [obj]
+				moveOrder.playerId = self.playerId
+				self.mediator.Send(moveOrder)
 
 	def SingleRightClick(self, screenPos, worldPos, screenSize, proj):
 
