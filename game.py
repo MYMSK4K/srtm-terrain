@@ -83,6 +83,16 @@ def run():
 
 			clickLat, clickLon, latLonR = None, None, None
 			if event.type in [MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION]:
+				mouseEvent = None
+				if event.type == MOUSEBUTTONDOWN:
+					mouseEvent = events.Event("mousebuttondown")
+					mouseEvent.button = event.button
+				if event.type == MOUSEBUTTONUP:
+					mouseEvent = events.Event("mousebuttonup")
+					mouseEvent.button = event.button
+				if event.type == MOUSEMOTION:
+					mouseEvent = events.Event("mousemotion")
+
 				#Convert from screen to world coordinates
 				glDepth = glReadPixels(event.pos[0], SCREEN_SIZE[1] - event.pos[1], 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT);
 				clickWorld = gluUnProject(event.pos[0], SCREEN_SIZE[1] - event.pos[1], glDepth)
@@ -94,41 +104,12 @@ def run():
 				clickLon = math.degrees(latLonR[1])
 				#print clickLat, clickLon, latLonR[2]
 
-			if event.type == MOUSEBUTTONDOWN:
-				#Emit event
-				#gameObjects.WorldClick((clickLat, clickLon, latLonR[2]), event.button, proj)
-
-				#Emit raw event
-				mouseEvent = events.Event("mousebuttondown")
-				mouseEvent.screenPos = event.pos
-				mouseEvent.worldPos = (clickLat, clickLon, latLonR[2])
-				mouseEvent.button = event.button
-				mouseEvent.screenSize = SCREEN_SIZE
-				mouseEvent.proj = proj
-				mouseEvent.time = pygame.time.get_ticks() / 1000.
-				eventMediator.Send(mouseEvent)
-
-			if event.type == MOUSEBUTTONUP:
-				mouseEvent = events.Event("mousebuttonup")
-				mouseEvent.screenPos = event.pos
-				mouseEvent.worldPos = (clickLat, clickLon, latLonR[2])
-				mouseEvent.button = event.button
-				mouseEvent.screenSize = SCREEN_SIZE
-				mouseEvent.proj = proj
-				mouseEvent.time = pygame.time.get_ticks() / 1000.
-				eventMediator.Send(mouseEvent)
-
-			if event.type == MOUSEMOTION:
-				#Emit raw event
-				mouseEvent = events.Event("mousemotion")
 				mouseEvent.screenPos = event.pos
 				mouseEvent.worldPos = (clickLat, clickLon, latLonR[2])
 				mouseEvent.screenSize = SCREEN_SIZE
 				mouseEvent.proj = proj
 				mouseEvent.time = pygame.time.get_ticks() / 1000.
 				eventMediator.Send(mouseEvent)
-
-			
 
 		pressed = pygame.key.get_pressed()
 
