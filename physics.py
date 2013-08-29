@@ -40,6 +40,8 @@ class Physics(events.EventCallback):
 	def Update(self, timeElapsed, timeNow):
 
 		movedObjs = set()
+		currentForces = {}
+		contacts = {}
 
 		#Add motor forces
 		for objId in self.objs:
@@ -100,7 +102,7 @@ class Physics(events.EventCallback):
 			else:
 				if speed <= body.maxSpeed:
 					#Mix acceleration towards with anti-drift
-					idealAccel = 0.9 * offTargetAccelReq + targetVecNorm
+					idealAccel = (0.9 * offTargetAccelReq + targetVecNorm) * body.accel
 				else:
 					idealAccel = offTargetAccelReq
 			
@@ -111,18 +113,14 @@ class Physics(events.EventCallback):
 				idealAccelScaled /= idealAccelMag
 				idealAccelScaled *= body.accel
 
-			body.velocity += idealAccelScaled * timeElapsed
-			body.pos += body.velocity * timeElapsed
-
-			if np.linalg.norm(body.velocity, ord=2) > 0.:
-				movedObjs.add(objId)
+			currentForces[objId] = idealAccelScaled * body.mass
 
 		#Add collisions
 		for objId1 in self.objs:
 			for objId2 in self.objs:
 				if objId1 == objId2: continue #Cannot self collide
 				obj1 = self.objs[objId1]
-				obj2 = self.objs[objId2]						
+				obj2 = self.objs[objId2]
 
 				sepVec = obj2.pos - obj1.pos
 				dist = np.linalg.norm(sepVec, ord=2)
@@ -132,16 +130,30 @@ class Physics(events.EventCallback):
 					sepVecNorm /= dist
 					
 					#Remove velocity component in contact
-					approachSpeed1 = np.dot(sepVecNorm, obj1.velocity)
-					approachSpeed2 = np.dot(-sepVecNorm, obj2.velocity)
-					
-					if approachSpeed1 > 0.:
-						obj1.velocity -= approachSpeed1 * sepVecNorm
-					if approachSpeed2 > 0.:
-						obj2.velocity -= approachSpeed2 * sepVecNorm
+					#approachSpeed1 = np.dot(sepVecNorm, obj1.velocity)
+					#approachSpeed2 = np.dot(-sepVecNorm, obj2.velocity)			
+
+					#if approachSpeed1 > 0.:
+					#	obj1.velocity -= approachSpeed1 * sepVecNorm
+					#if approachSpeed2 > 0.:
+					#	obj2.velocity -= approachSpeed2 * sepVecNorm
 		
-					#Move objects apart
+					#Apply separation force
+					if objId1 not in currentForces: currentForces[objId1] = np.array((0.,0.,0.))
+					if objId2 not in currentForces: currentForces[objId2] = np.array((0.,0.,0.))
+					obj1Forces = currentForces[objId1]
+					obj2Forces = currentForces[objId2]
+
+					forceTowards1 = np.dot(sepVecNorm, obj1Forces)
+					forceTowards2 = np.dot(sepVecNorm, obj2Forces)
 					
+					#Newton's 3rd law
+					obj1Forces -= forceTowards1 * sepVecNorm
+					obj2Forces += forceTowards1 * sepVecNorm
+					obj1Forces -= forceTowards2 * sepVecNorm
+					obj2Forces += forceTowards2 * sepVecNorm
+					
+					#Move objects apart
 					obj1.pos -= 0.5 * penetrDist * sepVecNorm
 					obj2.pos += 0.5 * penetrDist * sepVecNorm
 
@@ -159,6 +171,18 @@ class Physics(events.EventCallback):
 				upVecNorm /= distFromPlanetCentre
 
 			body.pos -= upVecNorm * gndAlt
+
+		#Update velocity and position
+		for objId in self.objs:
+			body = self.objs[objId]
+			if objId in currentForces: #Newton's first law
+				bodyForces = currentForces[objId]
+				body.velocity += timeElapsed * bodyForces / body.mass #Newton's second law
+
+			body.pos += body.velocity * timeElapsed
+
+			if np.linalg.norm(body.velocity, ord=2) > 0.:
+				movedObjs.add(objId)
 
 		#Generate events for anything moving
 		for objId in movedObjs:
