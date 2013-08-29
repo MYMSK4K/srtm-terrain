@@ -116,9 +116,9 @@ class Physics(events.EventCallback):
 			currentForces[objId] = idealAccelScaled * body.mass
 
 		#Add collisions
-		for objId1 in self.objs:
-			for objId2 in self.objs:
-				if objId1 == objId2: continue #Cannot self collide
+		for i, objId1 in enumerate(self.objs):
+			for j, objId2 in enumerate(self.objs):
+				if j <= i: continue #Cannot self collide
 				obj1 = self.objs[objId1]
 				obj2 = self.objs[objId2]
 
@@ -148,10 +148,10 @@ class Physics(events.EventCallback):
 					forceTowards2 = np.dot(sepVecNorm, obj2Forces)
 					
 					#Newton's 3rd law
-					obj1Forces -= forceTowards1 * sepVecNorm
-					obj2Forces += forceTowards1 * sepVecNorm
-					obj1Forces += forceTowards2 * sepVecNorm
-					obj2Forces -= forceTowards2 * sepVecNorm
+					currentForces[objId1] -= forceTowards1 * sepVecNorm
+					currentForces[objId2] += forceTowards1 * sepVecNorm
+					currentForces[objId1] -= forceTowards2 * sepVecNorm
+					currentForces[objId2] += forceTowards2 * sepVecNorm
 					
 					#Move objects apart
 					obj1.pos -= 0.5 * penetrDist * sepVecNorm
