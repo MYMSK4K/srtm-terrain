@@ -97,8 +97,11 @@ class Physics(events.EventCallback):
 				idealDecelMag = (speedTowardTarg ** 2.) / (2. * dist)
 				idealAccel = 0.9 * offTargetAccelReq - targetVecNorm * idealDecelMag
 			else:
-				#Mix acceleration towards with anti-drift
-				idealAccel = 0.9 * offTargetAccelReq + targetVecNorm
+				if speed <= body.maxSpeed:
+					#Mix acceleration towards with anti-drift
+					idealAccel = 0.9 * offTargetAccelReq + targetVecNorm
+				else:
+					idealAccel = offTargetAccelReq
 				
 			#Limit acceleration
 			idealAccelMag = np.linalg.norm(idealAccel, ord=2)
@@ -118,13 +121,13 @@ class Physics(events.EventCallback):
 			for objId2 in self.objs:
 				if objId1 == objId2: continue #Cannot self collide
 				obj1 = self.objs[objId1]
-				obj2 = self.objs[objId2]								
+				obj2 = self.objs[objId2]						
 
 				sepVec = obj2.pos - obj1.pos
 				dist = np.linalg.norm(sepVec, ord=2)
 				penetrDist = obj1.radius + obj2.radius - dist
 				if penetrDist >= 0.:
-					print "collide"
+					print "collide", penetrDist
 					sepVecNorm = sepVec.copy()
 					sepVecNorm /= dist
 					
@@ -132,9 +135,19 @@ class Physics(events.EventCallback):
 					approachSpeed1 = np.dot(sepVecNorm, obj1.velocity)
 					approachSpeed2 = np.dot(-sepVecNorm, obj2.velocity)
 					
-					obj1.velocity -= approachSpeed1 * sepVecNorm
-					obj2.velocity -= approachSpeed2 * sepVecNorm
+					if approachSpeed1 > 0.:
+						obj1.velocity -= approachSpeed1 * sepVecNorm
+					if approachSpeed2 > 0.:
+						obj2.velocity -= approachSpeed2 * sepVecNorm
 		
+					#Move objects apart
+					
+					obj1.pos -= 0.5 * penetrDist * sepVecNorm
+					obj2.pos += 0.5 * penetrDist * sepVecNorm
+
+				movedObjs.add(objId1)
+				movedObjs.add(objId2)
+
 		#Move objects to terrain surface
 		#TODO
 
