@@ -29,6 +29,7 @@ class Physics(events.EventCallback):
 		self.prevSpeed = {}
 
 	def AddPlanet(self):
+		self.planetRadius = -self.proj.radius
 		self.planetCentre = np.array(self.proj.Proj(0., 0., self.proj.UnscaleDistance(-self.proj.radius)))
 
 	def AddSphere(self, pos, objId):
@@ -102,7 +103,7 @@ class Physics(events.EventCallback):
 					idealAccel = 0.9 * offTargetAccelReq + targetVecNorm
 				else:
 					idealAccel = offTargetAccelReq
-				
+			
 			#Limit acceleration
 			idealAccelMag = np.linalg.norm(idealAccel, ord=2)
 			idealAccelScaled = idealAccel.copy()
@@ -117,7 +118,7 @@ class Physics(events.EventCallback):
 				movedObjs.add(objId)
 
 		#Add collisions
-		for objId1 in self.objs:	
+		for objId1 in self.objs:
 			for objId2 in self.objs:
 				if objId1 == objId2: continue #Cannot self collide
 				obj1 = self.objs[objId1]
@@ -149,7 +150,11 @@ class Physics(events.EventCallback):
 				movedObjs.add(objId2)
 
 		#Move objects to terrain surface
-		#TODO
+		for objId in self.objs:
+			body = self.objs[objId]
+			distFromPlanetCentre = np.linalg.norm(self.planetCentre - body.pos, ord=2)
+			print distFromPlanetCentre - self.planetRadius
+
 
 		#Generate events for anything moving
 		for objId in movedObjs:
