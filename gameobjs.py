@@ -103,6 +103,7 @@ class Person(GameObj):
 		self.attackOrder = None
 		posEv = events.Event("physicssettargetpos")
 		posEv.pos = proj.ProjDeg(*pos)
+		posEv.speed = (0., 0., 0.)
 		posEv.objId = self.objId
 		self.mediator.Send(posEv)
 

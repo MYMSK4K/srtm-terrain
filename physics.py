@@ -1,7 +1,16 @@
 
 import events, time, projfunc
-import ode, math
+import math
 import numpy as np
+
+class PhysicsBody():
+	def __init__(self):
+		self.pos = np.array((0., 0., 0.))
+		self.velocity = np.array((0., 0., 0.))
+		self.targetPos = None
+		self.accel = 0.01
+		self.maxSpeed = 0.003
+		self.mass = 1.
 
 class Physics(events.EventCallback):
 	def __init__(self, mediator):
@@ -15,145 +24,131 @@ class Physics(events.EventCallback):
 		self.planetCentre = None
 		self.reportedPos = {}
 
-		self.world = ode.World()
-		self.world.setERP(0.8)
-		self.world.setCFM(1E-5)
-
-		# Create a space object
-		self.space = ode.Space()
-
 		self.objs = {}
 		self.prevSpeed = {}
 
-		# A joint group for the contact joints that are generated whenever
-		# two bodies collide
-		self.contactgroup = ode.JointGroup()
-
 	def AddPlanet(self):
 		self.planetCentre = np.array(self.proj.Proj(0., 0., self.proj.UnscaleDistance(-self.proj.radius)))
-		self.planet = ode.GeomSphere(self.space, self.proj.radius)
-		self.planet.setPosition(self.planetCentre)
 
 	def AddSphere(self, pos, objId):
-
-		radius = 0.001
-		density = 1.e9
-
-		# Create body
-		body = ode.Body(self.world)
-		M = ode.Mass()
-		M.setSphere(density, radius)
-		body.setMass(M)
-		body.setPosition(pos)
-
-		# Create a box geom for collision detection
-		geom = ode.GeomSphere(self.space, radius)
-		geom.setBody(body)
-
-		self.objs[objId] = [body, geom, None]
-
-		return objId
+		body = PhysicsBody()
+		body.pos = np.array(pos)
+		self.objs[objId] = body
 
 	def Update(self, timeElapsed, timeNow):
 
-		# Calculate gravity
-		for objId in self.objs:
-			body, geom, targetPos = self.objs[objId]
-			pos = body.getPosition()
-			
-			vecFromCentre = self.planetCentre - pos
-			dist = np.linalg.norm(vecFromCentre, ord=2)
-			if dist > 0.:
-				vecFromCentre /= dist
-
-			body.addForce(vecFromCentre * body.getMass().mass * 0.00981)
-
 		#Add motor forces
 		for objId in self.objs:
-			body, geom, targetPos = self.objs[objId]
-			if targetPos is None: continue
-			pos = body.getPosition()
+			body = self.objs[objId]
+			if body.targetPos is None: continue
 			
-			vec = targetPos - pos
-			dist = np.linalg.norm(vec, ord=2)
+			#Direction towards target
+			targetVec = body.targetPos - body.pos
+			dist = np.linalg.norm(targetVec, ord=2)
+			targetVecNorm = targetVec.copy()
 			if dist > 0.:
-				vec /= dist
+				targetVecNorm /= dist
 
-			vel = body.getLinearVel()
-			velMag = np.linalg.norm(vel, ord=2)
-			if velMag > 0.:
-				vel /= velMag
+			#Normalise velocity to get direction
+			velVec = body.velocity
+			speed = np.linalg.norm(velVec, ord=2)
+			velVecNorm = velVec.copy()
+			if speed > 0.:
+				velVecNorm /= speed
 
-			accel = 0.008
-			calcAccel = 0.005
-			idealSpeed = math.pow(2. * calcAccel * dist, 0.5)
-			
-			if idealSpeed > velMag:
-				print "accel", idealSpeed, velMag, timeElapsed
-				fo = vec * body.getMass().mass * accel
-				body.addForce(fo)
+			#Check if approaching target
+			veldot = np.dot(velVec, targetVecNorm)
+			approaching = (veldot >= 0.)
+			speedTowardTarg = np.dot(velVec, targetVecNorm)			
+
+			if approaching:
+				#Check if braking is needed
+				idealSpeedToward = (2. * dist * body.accel) ** 0.5
+				safetyMargin = 0.95
+
+				if speedTowardTarg >= idealSpeedToward * safetyMargin:
+					braking = True
+				else:
+					braking = False
 			else:
-				print "braking", idealSpeed, velMag, timeElapsed
-				fo = -vel * body.getMass().mass * accel
-				body.addForce(fo)
+				braking = False
 
-			if objId in self.prevSpeed:
-				print (velMag - self.prevSpeed[objId]) / timeElapsed
+			if braking:
+				print "brake"
+				#Braking is required
+				idealDecelMag = (speedTowardTarg ** 2.) / (2. * dist)
+				idealAccel = -targetVecNorm * idealDecelMag
+			else:
+				print "accel"
+				#Calculate force to reduce missing the target
+				offTargetVel = velVec - speedTowardTarg * targetVec
+				offTargetVelMag = np.linalg.norm(offTargetVel, ord=2)
+				offTargetVelNorm = offTargetVel.copy()
+				if offTargetVelMag > 0.:
+					offTargetVelNorm /= offTargetVelMag
+				offTargetAccelReq = - offTargetVelNorm
 
-			self.prevSpeed[objId] = velMag
+				#Mix acceleration towards with anti-drift
+				idealAccel = offTargetAccelReq + targetVecNorm
+				
+			#Limit acceleration
+			idealAccelMag = np.linalg.norm(idealAccel, ord=2)
+			idealAccelScaled = idealAccel.copy()
+			if idealAccelMag > body.accel:
+				idealAccelScaled /= idealAccelMag
+				idealAccelScaled *= body.accel
 
-		# Detect collisions and create contact joints
-		self.space.collide(self, self.NearCallback)
+			print np.linalg.norm(idealAccelScaled, ord=2)
+			body.velocity += idealAccelScaled * timeElapsed
+			body.pos += body.velocity * timeElapsed
 
-		# Simulation step
-		self.world.step(timeElapsed)
+			#idealSpeed = np.array((idealSpeedx, idealSpeedy, idealSpeedz))
+			#idealDiff = idealSpeedz - body.pos
+			#idealDiffMag = np.linalg.norm(idealDiff, ord=2)
+			#if idealDiffMag > 0.:
+			#	idealDiff /= idealDiffMag
+			#print idealDiff
 
-		# Remove all contact joints
-		self.contactgroup.empty()
+			#if idealSpeed > velMag:
+			#	print "accel", idealSpeed, velMag, timeElapsed
+			#	fo = vec * body.mass * accel
+			#else:
+			#	print "braking", idealSpeed, velMag, timeElapsed
+			#	fo = -vel * body.mass * accel
+
+			#if objId in self.prevSpeed:
+			#	print (velMag - self.prevSpeed[objId]) / timeElapsed
+
+			#self.prevSpeed[objId] = velMag
+
+
 
 		#FIXME remove unused data in self.prevPosLi?
 
 		# Generate events if object has moved
-		for objId in self.objs:
-			body, geom, targetPos = self.objs[objId]
-			pos = body.getPosition()
-			if objId not in self.reportedPos:
-				#Position not previously reported
-				posUpdateEv = events.Event("physicsposupdate")
-				posUpdateEv.pos = pos
-				posUpdateEv.objId = objId
-				self.mediator.Send(posUpdateEv)
+		#for objId in self.objs:
+		#	body = self.objs[objId]
+		#	pos = body.getPosition()
+		#	if objId not in self.reportedPos:
+		#		#Position not previously reported
+		#		posUpdateEv = events.Event("physicsposupdate")
+		#		posUpdateEv.pos = pos
+		#		posUpdateEv.objId = objId
+		#		self.mediator.Send(posUpdateEv)
 
-				self.reportedPos[objId] = pos
-			else:
-				prevPos = self.reportedPos[objId]
-				moveDist = np.linalg.norm(np.array(prevPos) - pos, ord=2)
+		#		self.reportedPos[objId] = pos
+		#	else:
+		#		prevPos = self.reportedPos[objId]
+		#		moveDist = np.linalg.norm(np.array(prevPos) - pos, ord=2)
 
-				if moveDist > 0.00001:
-					#Position has changed enough to report it
-					posUpdateEv = events.Event("physicsposupdate")
-					posUpdateEv.pos = pos
-					posUpdateEv.objId = objId
-					self.mediator.Send(posUpdateEv)
+		#		if moveDist > 0.00001:
+		#Position has changed enough to report it
+			posUpdateEv = events.Event("physicsposupdate")
+			posUpdateEv.pos = body.pos
+			posUpdateEv.objId = objId
+			self.mediator.Send(posUpdateEv)
 
-					self.reportedPos[objId] = pos
-				
-		#for i, obj in enumerate(self.objs):
-		#	print i, timeElapsed, self.objs[obj][0].getPosition()
-
-	def NearCallback(self, args, geom1, geom2):
-		# Check if the objaects do collide
-		contacts = ode.collide(geom1, geom2)
-
-		# Create contact joints
-		for c in contacts:
-			#pos, normal, depth, geom1, geom2 = c.getContactGeomParams()
-			#if depth == 0: continue
-			
-			c.setBounce(0.2)
-			c.setMu(5000)
-			j = ode.ContactJoint(self.world, self.contactgroup, c)
-			j.attach(geom1.getBody(), geom2.getBody())
+		#			self.reportedPos[objId] = pos
 
 	def ProcessEvent(self, event):
 		if event.type == "physicscreateperson":
@@ -163,12 +158,12 @@ class Physics(events.EventCallback):
 		if event.type == "physicssetpos":
 			#print event.type, event.pos
 			obj = self.objs[event.objId]
-			obj[0].setPosition(event.pos)
+			obj.pos = np.array(event.pos).copy()
 			return
 
 		if event.type == "physicssettargetpos":
 			obj = self.objs[event.objId]
-			obj[2] = np.array(event.pos)
+			obj.targetPos = np.array(event.pos).copy()
 			return
 
 		print event.type
