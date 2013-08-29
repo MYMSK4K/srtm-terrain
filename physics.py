@@ -73,23 +73,21 @@ class Physics(events.EventCallback):
 			else:
 				braking = False
 
+			#Calculate force to reduce missing the target
+			offTargetVel = velVec - speedTowardTarg * targetVec
+			offTargetVelMag = np.linalg.norm(offTargetVel, ord=2)
+			offTargetVelNorm = offTargetVel.copy()
+			if offTargetVelMag > 0.:
+				offTargetVelNorm /= offTargetVelMag
+			offTargetAccelReq = - offTargetVelNorm
+
 			if braking:
-				print "brake"
 				#Braking is required
 				idealDecelMag = (speedTowardTarg ** 2.) / (2. * dist)
-				idealAccel = -targetVecNorm * idealDecelMag
+				idealAccel = 0.9 * offTargetAccelReq - targetVecNorm * idealDecelMag
 			else:
-				print "accel"
-				#Calculate force to reduce missing the target
-				offTargetVel = velVec - speedTowardTarg * targetVec
-				offTargetVelMag = np.linalg.norm(offTargetVel, ord=2)
-				offTargetVelNorm = offTargetVel.copy()
-				if offTargetVelMag > 0.:
-					offTargetVelNorm /= offTargetVelMag
-				offTargetAccelReq = - offTargetVelNorm
-
 				#Mix acceleration towards with anti-drift
-				idealAccel = offTargetAccelReq + targetVecNorm
+				idealAccel = 0.9 * offTargetAccelReq + targetVecNorm
 				
 			#Limit acceleration
 			idealAccelMag = np.linalg.norm(idealAccel, ord=2)
