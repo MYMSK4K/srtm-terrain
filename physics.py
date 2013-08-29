@@ -8,8 +8,8 @@ class PhysicsBody():
 		self.pos = np.array((0., 0., 0.))
 		self.velocity = np.array((0., 0., 0.))
 		self.targetPos = None
-		self.accel = 0.01
-		self.maxSpeed = 0.003
+		self.accel = 0.05
+		self.maxSpeed = 0.01
 		self.mass = 1.
 		self.radius = 0.001
 
@@ -150,8 +150,8 @@ class Physics(events.EventCallback):
 					#Newton's 3rd law
 					currentForces[objId1] -= forceTowards1 * sepVecNorm
 					currentForces[objId2] += forceTowards1 * sepVecNorm
-					currentForces[objId1] -= forceTowards2 * sepVecNorm
-					currentForces[objId2] += forceTowards2 * sepVecNorm
+					currentForces[objId1] += forceTowards2 * sepVecNorm
+					currentForces[objId2] -= forceTowards2 * sepVecNorm
 					
 					#Move objects apart
 					obj1.pos -= 0.5 * penetrDist * sepVecNorm
