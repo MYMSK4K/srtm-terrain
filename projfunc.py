@@ -61,8 +61,8 @@ class ProjFunc:
 		GL.glMultMatrixd(m)
 
 	def DistanceBetween(self, lat1, lon1, alt1, lat2, lon2, alt2):
-		pt1 = self.Proj(math.radians(lat1), math.radians(lon1), alt1)
-		pt2 = self.Proj(math.radians(lat2), math.radians(lon2), alt2)
+		pt1 = self.ProjDeg(lat1, lon1, alt1)
+		pt2 = self.ProjDeg(lat2, lon2, alt2)
 
 		return np.linalg.norm(pt1 - pt2, ord=2) * self.scale
 
@@ -73,8 +73,8 @@ class ProjFunc:
 		return dist * self.scale
 
 	def OffsetTowardsPoint(self, oriPt, towardPt, dist):
-		pt1 = self.Proj(math.radians(oriPt[0]), math.radians(oriPt[1]), oriPt[2])
-		pt2 = self.Proj(math.radians(towardPt[0]), math.radians(towardPt[1]), towardPt[2])
+		pt1 = self.ProjDeg(*oriPt)
+		pt2 = self.ProjDeg(*towardPt)
 		direction = pt2 - pt1
 		mag = np.linalg.norm(direction, ord=2)
 		if mag > 0.:

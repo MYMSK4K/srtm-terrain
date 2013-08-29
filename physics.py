@@ -11,6 +11,7 @@ class PhysicsBody():
 		self.accel = 0.01
 		self.maxSpeed = 0.003
 		self.mass = 1.
+		self.radius = 0.001
 
 class Physics(events.EventCallback):
 	def __init__(self, mediator):
@@ -37,6 +38,8 @@ class Physics(events.EventCallback):
 
 	def Update(self, timeElapsed, timeNow):
 
+		movedObjs = set()
+
 		#Add motor forces
 		for objId in self.objs:
 			body = self.objs[objId]
@@ -58,8 +61,11 @@ class Physics(events.EventCallback):
 
 			#Check if we are close enough to round to target pos
 			distTol = body.accel * timeElapsed ** 2. / 2.
-			if dist < distTol: print "Arrived"
-
+			speedTol = body.accel * timeElapsed
+			if dist < distTol and speed < speedTol:
+				body.velocity *= 0.
+				body.pos = body.targetPos.copy()
+				continue
 
 			#Check if approaching target
 			veldot = np.dot(velVec, targetVecNorm)
@@ -104,33 +110,31 @@ class Physics(events.EventCallback):
 			body.velocity += idealAccelScaled * timeElapsed
 			body.pos += body.velocity * timeElapsed
 
+			if np.linalg.norm(body.velocity, ord=2) > 0.:
+				movedObjs.add(objId)
 
-		#FIXME remove unused data in self.prevPosLi?
+		#Add collisions
+		for objId1 in self.objs:	
+			for objId2 in self.objs:
+				if objId1 == objId2: continue #Cannot self collide
+				obj1 = self.objs[objId1]
+				obj2 = self.objs[objId2]								
 
-		# Generate events if object has moved
-		#for objId in self.objs:
-		#	body = self.objs[objId]
-		#	pos = body.getPosition()
-		#	if objId not in self.reportedPos:
-		#		#Position not previously reported
-		#		posUpdateEv = events.Event("physicsposupdate")
-		#		posUpdateEv.pos = pos
-		#		posUpdateEv.objId = objId
-		#		self.mediator.Send(posUpdateEv)
+				dist = np.linalg.norm(obj1.pos - obj2.pos, ord=2)
+				if dist < obj1.radius + obj2.radius:
+					print "collide"
+		
+		#Move objects to terrain surface
+		#TODO
 
-		#		self.reportedPos[objId] = pos
-		#	else:
-		#		prevPos = self.reportedPos[objId]
-		#		moveDist = np.linalg.norm(np.array(prevPos) - pos, ord=2)
+		#Generate events for anything moving
+		for objId in movedObjs:
+			body = self.objs[objId]
 
-		#		if moveDist > 0.00001:
-		#Position has changed enough to report it
 			posUpdateEv = events.Event("physicsposupdate")
 			posUpdateEv.pos = body.pos
 			posUpdateEv.objId = objId
 			self.mediator.Send(posUpdateEv)
-
-		#			self.reportedPos[objId] = pos
 
 	def ProcessEvent(self, event):
 		if event.type == "physicscreateperson":
