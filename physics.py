@@ -56,6 +56,11 @@ class Physics(events.EventCallback):
 			if speed > 0.:
 				velVecNorm /= speed
 
+			#Check if we are close enough to round to target pos
+			distTol = body.accel * timeElapsed ** 2. / 2.
+			if dist < distTol: print "Arrived"
+
+
 			#Check if approaching target
 			veldot = np.dot(velVec, targetVecNorm)
 			approaching = (veldot >= 0.)
@@ -96,29 +101,8 @@ class Physics(events.EventCallback):
 				idealAccelScaled /= idealAccelMag
 				idealAccelScaled *= body.accel
 
-			print np.linalg.norm(idealAccelScaled, ord=2)
 			body.velocity += idealAccelScaled * timeElapsed
 			body.pos += body.velocity * timeElapsed
-
-			#idealSpeed = np.array((idealSpeedx, idealSpeedy, idealSpeedz))
-			#idealDiff = idealSpeedz - body.pos
-			#idealDiffMag = np.linalg.norm(idealDiff, ord=2)
-			#if idealDiffMag > 0.:
-			#	idealDiff /= idealDiffMag
-			#print idealDiff
-
-			#if idealSpeed > velMag:
-			#	print "accel", idealSpeed, velMag, timeElapsed
-			#	fo = vec * body.mass * accel
-			#else:
-			#	print "braking", idealSpeed, velMag, timeElapsed
-			#	fo = -vel * body.mass * accel
-
-			#if objId in self.prevSpeed:
-			#	print (velMag - self.prevSpeed[objId]) / timeElapsed
-
-			#self.prevSpeed[objId] = velMag
-
 
 
 		#FIXME remove unused data in self.prevPosLi?
