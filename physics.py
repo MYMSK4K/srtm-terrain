@@ -120,9 +120,20 @@ class Physics(events.EventCallback):
 				obj1 = self.objs[objId1]
 				obj2 = self.objs[objId2]								
 
-				dist = np.linalg.norm(obj1.pos - obj2.pos, ord=2)
-				if dist < obj1.radius + obj2.radius:
+				sepVec = obj2.pos - obj1.pos
+				dist = np.linalg.norm(sepVec, ord=2)
+				penetrDist = obj1.radius + obj2.radius - dist
+				if penetrDist >= 0.:
 					print "collide"
+					sepVecNorm = sepVec.copy()
+					sepVecNorm /= dist
+					
+					#Remove velocity component in contact
+					approachSpeed1 = np.dot(sepVecNorm, obj1.velocity)
+					approachSpeed2 = np.dot(-sepVecNorm, obj2.velocity)
+					
+					obj1.velocity -= approachSpeed1 * sepVecNorm
+					obj2.velocity -= approachSpeed2 * sepVecNorm
 		
 		#Move objects to terrain surface
 		#TODO
