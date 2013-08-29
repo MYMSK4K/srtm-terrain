@@ -1,6 +1,6 @@
 
 import events, time, projfunc
-import ode
+import ode, math
 import numpy as np
 
 class Physics(events.EventCallback):
@@ -23,6 +23,7 @@ class Physics(events.EventCallback):
 		self.space = ode.Space()
 
 		self.objs = {}
+		self.prevSpeed = {}
 
 		# A joint group for the contact joints that are generated whenever
 		# two bodies collide
@@ -78,8 +79,28 @@ class Physics(events.EventCallback):
 			if dist > 0.:
 				vec /= dist
 
-			fo = vec * body.getMass().mass * 0.001
-			body.addForce(fo)
+			vel = body.getLinearVel()
+			velMag = np.linalg.norm(vel, ord=2)
+			if velMag > 0.:
+				vel /= velMag
+
+			accel = 0.008
+			calcAccel = 0.005
+			idealSpeed = math.pow(2. * calcAccel * dist, 0.5)
+			
+			if idealSpeed > velMag:
+				print "accel", idealSpeed, velMag, timeElapsed
+				fo = vec * body.getMass().mass * accel
+				body.addForce(fo)
+			else:
+				print "braking", idealSpeed, velMag, timeElapsed
+				fo = -vel * body.getMass().mass * accel
+				body.addForce(fo)
+
+			if objId in self.prevSpeed:
+				print (velMag - self.prevSpeed[objId]) / timeElapsed
+
+			self.prevSpeed[objId] = velMag
 
 		# Detect collisions and create contact joints
 		self.space.collide(self, self.NearCallback)
