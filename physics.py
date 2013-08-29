@@ -150,8 +150,8 @@ class Physics(events.EventCallback):
 					#Newton's 3rd law
 					obj1Forces -= forceTowards1 * sepVecNorm
 					obj2Forces += forceTowards1 * sepVecNorm
-					obj1Forces -= forceTowards2 * sepVecNorm
-					obj2Forces += forceTowards2 * sepVecNorm
+					obj1Forces += forceTowards2 * sepVecNorm
+					obj2Forces -= forceTowards2 * sepVecNorm
 					
 					#Move objects apart
 					obj1.pos -= 0.5 * penetrDist * sepVecNorm
