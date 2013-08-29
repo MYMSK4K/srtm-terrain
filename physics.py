@@ -172,6 +172,17 @@ class Physics(events.EventCallback):
 
 			body.pos -= upVecNorm * gndAlt
 
+		#Add friction
+		for objId in self.objs:
+			body = self.objs[objId]
+			speed = np.linalg.norm(body.velocity, ord=2)
+			velDirNorm = body.velocity.copy()
+			if speed > 0.:
+				velDirNorm /= speed
+
+				if objId not in currentForces: currentForces[objId] = np.array((0.,0.,0.))
+				currentForces[objId] -= body.velocity * 0.5
+
 		#Update velocity and position
 		for objId in self.objs:
 			body = self.objs[objId]
